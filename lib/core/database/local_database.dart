@@ -2,10 +2,11 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'daos/barang_dao.dart';
 import 'daos/transaksi_dao.dart';
+import 'daos/laporan_dao.dart'; // <-- TAMBAHAN WAJIB MATANG
 
 part 'local_database.g.dart';
 
-// === SEMUA TABEL JADI SATU DISINI ===
+// === SEMUA TABEL JADI SATU DISINI - SONY JAYA v3 FIFO LOG ===
 
 class Barang extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -25,7 +26,7 @@ class Barang extends Table {
 
 class Pembelian extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get barangId => integer().customConstraint('REFERENCES barang(id)')();
+  IntColumn get barangId => integer().customConstraint('REFERENCES barang(id) ON DELETE CASCADE')();
   IntColumn get qtyPcs => integer()();
   RealColumn get hargaBeliPerPcs => real()();
   TextColumn get supplier => text().nullable()();
@@ -34,20 +35,20 @@ class Pembelian extends Table {
 
 class Penjualan extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get barangId => integer().customConstraint('REFERENCES barang(id)')();
+  IntColumn get barangId => integer().customConstraint('REFERENCES barang(id) ON DELETE CASCADE')();
   IntColumn get qtyPcs => integer()();
   RealColumn get hargaJualPerPcs => real()();
   RealColumn get hppSnapshot => real()();
   RealColumn get laba => real()();
-  TextColumn get tipe => text().withDefault(const Constant('ecer'))();
+  TextColumn get tipe => text().withDefault(const Constant('ecer'))(); // ecer | agen
   DateTimeColumn get tanggal => dateTime().withDefault(currentDateAndTime)();
 }
 
 class KartuStok extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get barangId => integer().customConstraint('REFERENCES barang(id)')();
+  IntColumn get barangId => integer().customConstraint('REFERENCES barang(id) ON DELETE CASCADE')();
   TextColumn get tipe => text()(); // MASUK | KELUAR
-  IntColumn get qty => integer()();
+  IntColumn get qty => integer()(); // +10 atau -10
   IntColumn get qtySisaLog => integer().withDefault(const Constant(0))(); // KUNCI FIFO TANPA BATCH
   IntColumn get stokAkhir => integer()();
   RealColumn get hargaBeliSaatItu => real().withDefault(const Constant(0))();
@@ -55,10 +56,10 @@ class KartuStok extends Table {
   DateTimeColumn get tanggal => dateTime().withDefault(currentDateAndTime)();
 }
 
-// === DATABASE UTAMA - FINAL MATANG ===
-@DriftDatabase(tables: [Barang, Pembelian, Penjualan, KartuStok], daos: [BarangDao, TransaksiDao])
+// === DATABASE UTAMA - FINAL MATANG ANTI P001 ===
+@DriftDatabase(tables: [Barang, Pembelian, Penjualan, KartuStok], daos: [BarangDao, TransaksiDao, LaporanDao])
 class LocalDatabase extends _$LocalDatabase {
-  // SINGLETON - Anti bocor memory & Anti Race Condition P001
+  // SINGLETON - Kunci biar gak bocor memory & Race Condition
   LocalDatabase._internal() : super(driftDatabase(name: 'sony_jaya_hpp_v3'));
   static final LocalDatabase _instance = LocalDatabase._internal();
   factory LocalDatabase() => _instance;
@@ -78,6 +79,7 @@ class LocalDatabase extends _$LocalDatabase {
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
+      await customStatement('PRAGMA journal_mode = WAL'); // biar transaksi cepat
     },
   );
 }

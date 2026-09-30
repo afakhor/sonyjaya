@@ -55,10 +55,29 @@ class KartuStok extends Table {
   DateTimeColumn get tanggal => dateTime().withDefault(currentDateAndTime)();
 }
 
-// === DATABASE UTAMA ===
+// === DATABASE UTAMA - FINAL MATANG ===
 @DriftDatabase(tables: [Barang, Pembelian, Penjualan, KartuStok], daos: [BarangDao, TransaksiDao])
 class LocalDatabase extends _$LocalDatabase {
-  LocalDatabase() : super(driftDatabase(name: 'sony_jaya_hpp_v3'));
+  // SINGLETON - Anti bocor memory & Anti Race Condition P001
+  LocalDatabase._internal() : super(driftDatabase(name: 'sony_jaya_hpp_v3'));
+  static final LocalDatabase _instance = LocalDatabase._internal();
+  factory LocalDatabase() => _instance;
+
   @override
   int get schemaVersion => 3;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (Migrator m) async {
+      await m.createAll();
+    },
+    onUpgrade: (Migrator m, int from, int to) async {
+      if (from < 3) {
+        await m.createAll();
+      }
+    },
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+    },
+  );
 }

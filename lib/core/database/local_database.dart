@@ -10,17 +10,17 @@ part 'local_database.g.dart';
 
 class Barang extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get sku => text().nullable().unique()(); // FIX: jadi nullable biar test gak wajib isi SKU
+  TextColumn get sku => text().nullable().unique()();
   TextColumn get nama => text()();
-  TextColumn get merek => text().nullable()();
-  TextColumn get satuanTerkecil => text().withDefault(const Constant('Pcs'))();
-  TextColumn get satuanBesar => text().withDefault(const Constant('Dus'))();
-  IntColumn get konversi => integer().withDefault(const Constant(24))();
+  TextColumn get merek => text().nullable()(); // Bosch, Makita, Tekiro
+  TextColumn get satuanTerkecil => text().withDefault(const Constant('Pcs'))(); // Pcs, Unit
+  TextColumn get satuanBesar => text().withDefault(const Constant('Set'))(); // Set, Box
+  IntColumn get konversi => integer().withDefault(const Constant(1))(); // FIX perkakas = 1, bukan 24
   RealColumn get hppAverage => real().withDefault(const Constant(0))();
   RealColumn get hargaEcer => real().withDefault(const Constant(0))();
   RealColumn get hargaAgen => real().withDefault(const Constant(0))();
   IntColumn get stok => integer().withDefault(const Constant(0))();
-  IntColumn get safetyStock => integer().withDefault(const Constant(5))();
+  IntColumn get safetyStock => integer().withDefault(const Constant(2))(); // perkakas slow moving
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 

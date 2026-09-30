@@ -3,12 +3,18 @@ part 'fast_stock_cache.g.dart';
 
 @collection
 class FastStockCache {
-  Id id = Isar.autoIncrement; // id = barangId
-  int? barangId;
-  String? nama;
+  Id id = Isar.autoIncrement;
+
+  @Index(unique: true)
+  int barangId = 0;
+
+  String nama = '';
+  String sku = '';
   int stok = 0;
-  double tor = 0; // dihitung Workmanager tiap jam
+  int safetyStock = 5;
+  double hppAverage = 0;
+  double tor = 0; // Turnover Rate
   bool isFastMoving = false;
-  @Index()
+  bool perluReorder = false;
   DateTime lastUpdated = DateTime.now();
 }

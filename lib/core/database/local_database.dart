@@ -2,15 +2,15 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'daos/barang_dao.dart';
 import 'daos/transaksi_dao.dart';
-import 'daos/laporan_dao.dart'; // <-- TAMBAHAN WAJIB MATANG
+import 'daos/laporan_dao.dart';
 
 part 'local_database.g.dart';
 
-// === SEMUA TABEL JADI SATU DISINI - SONY JAYA v3 FIFO LOG ===
+// === SEMUA TABEL JADI SATU - SONY JAYA v3 FIFO LOG MATANG ===
 
 class Barang extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get sku => text().unique()();
+  TextColumn get sku => text().nullable().unique()(); // FIX: jadi nullable biar test gak wajib isi SKU
   TextColumn get nama => text()();
   TextColumn get merek => text().nullable()();
   TextColumn get satuanTerkecil => text().withDefault(const Constant('Pcs'))();
@@ -56,13 +56,16 @@ class KartuStok extends Table {
   DateTimeColumn get tanggal => dateTime().withDefault(currentDateAndTime)();
 }
 
-// === DATABASE UTAMA - FINAL MATANG ANTI P001 ===
+// === DATABASE UTAMA - FINAL MATANG ANTI P001 + SUPPORT TEST ===
 @DriftDatabase(tables: [Barang, Pembelian, Penjualan, KartuStok], daos: [BarangDao, TransaksiDao, LaporanDao])
 class LocalDatabase extends _$LocalDatabase {
-  // SINGLETON - Kunci biar gak bocor memory & Race Condition
+  // Untuk APK asli - Singleton anti bocor
   LocalDatabase._internal() : super(driftDatabase(name: 'sony_jaya_hpp_v3'));
   static final LocalDatabase _instance = LocalDatabase._internal();
   factory LocalDatabase() => _instance;
+
+  // Untuk UNIT TEST di GitHub - pakai memory, bukan file
+  LocalDatabase.forTesting(super.e);
 
   @override
   int get schemaVersion => 3;
@@ -79,7 +82,7 @@ class LocalDatabase extends _$LocalDatabase {
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
-      await customStatement('PRAGMA journal_mode = WAL'); // biar transaksi cepat
+      await customStatement('PRAGMA journal_mode = WAL');
     },
   );
 }

@@ -16,15 +16,15 @@ dependencies:
   drift_flutter: ^0.2.0
   
   # Saraf super Reaktif
-  flutter_riverpod: ^2.5.0
-  riverpod_annotation: ^2.3.0
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
   
   # Otot Background
   workmanager: ^0.5.2
   
   # Cache Cepat
-  isar_community: ^3.1.0+1
-  isar_community_flutter_libs: ^3.1.0+1
+  isar_community: 3.1.0+1
+  isar_community_flutter_libs: 3.1.0+1
 
   # Utils Toko Bangunan
   path_provider: ^2.1.2
@@ -34,8 +34,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   drift_dev: ^2.14.0
-  build_runner: ^2.4.8
-  riverpod_generator: ^2.4.0
+  build_runner: ^2.4.12
+  riverpod_generator: ^2.4.3
   #isar_generator: ^3.1.0+1
   isar_community_generator: ^3.1.0+1
   flutter_lints: ^3.0.0

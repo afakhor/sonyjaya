@@ -6,9 +6,10 @@ part 'transaksi_dao.g.dart';
 class TransaksiDao extends DatabaseAccessor<LocalDatabase> with _$TransaksiDaoMixin {
   TransaksiDao(super.db);
 
-  Future<void> prosesPembelian({required int barangId, required int qtyPcs, required double hargaBeli, String? supplier}) async {                                     await transaction(() async {
+  Future<void> prosesPembelian({required int barangId, required int qtyPcs, required double hargaBeli, String? supplier}) async {
+    await transaction(() async {
       final barang = await (select(db.barang)..where((b) => b.id.equals(barangId))).getSingle();
-      final hppBaru = (barang.stok + qtyPcs) == 0 ? hargaBeli : ((barang.stok * barang.hppAverage) + (qtyPcs * hargaBeli)) / (barang.stok + qtyPcs);
+      final hppBaru = (barang.stok + qtyPcs) == 0? hargaBeli : ((barang.stok * barang.hppAverage) + (qtyPcs * hargaBeli)) / (barang.stok + qtyPcs);
       final stokBaru = barang.stok + qtyPcs;
 
       await (update(db.barang)..where((b) => b.id.equals(barangId))).write(
@@ -33,13 +34,15 @@ class TransaksiDao extends DatabaseAccessor<LocalDatabase> with _$TransaksiDaoMi
 
       int sisaJual = qtyPcs;
       final logs = await (select(db.kartuStok)
-        ..where((k) => k.barangId.equals(barangId) & k.tipe.equals('MASUK') & k.qtySisaLog.isBiggerThanValue(0))
-        ..orderBy([(k) => OrderingTerm.asc(k.tanggal)])
+       ..where((k) => k.barangId.equals(barangId))
+       ..where((k) => k.tipe.equals('MASUK'))
+       ..where((k) => k.qtySisaLog.isBiggerThanValue(0))
+       ..orderBy([(k) => OrderingTerm.asc(k.tanggal)])
       ).get();
 
       for (final log in logs) {
         if (sisaJual <= 0) break;
-        final ambil = sisaJual > log.qtySisaLog ? log.qtySisaLog : sisaJual;
+        final ambil = sisaJual > log.qtySisaLog? log.qtySisaLog : sisaJual;
         await (update(db.kartuStok)..where((k) => k.id.equals(log.id))).write(
           KartuStokCompanion(qtySisaLog: Value(log.qtySisaLog - ambil))
         );
@@ -53,14 +56,9 @@ class TransaksiDao extends DatabaseAccessor<LocalDatabase> with _$TransaksiDaoMi
         BarangCompanion(stok: Value(stokBaru), updatedAt: Value(DateTime.now()))
       );
 
-      // FIX DI SINI: laba jangan pakai Value(), langsung laba
       final idJual = await into(db.penjualan).insert(PenjualanCompanion.insert(
-        barangId: barangId,
-        qtyPcs: qtyPcs,
-        hargaJualPerPcs: hargaJual,
-        hppSnapshot: barang.hppAverage,
-        laba: laba,
-        tipe: Value(tipe)
+        barangId: barangId, qtyPcs: qtyPcs, hargaJualPerPcs: hargaJual,
+        hppSnapshot: barang.hppAverage, laba: laba, tipe: Value(tipe)
       ));
 
       await into(db.kartuStok).insert(KartuStokCompanion.insert(

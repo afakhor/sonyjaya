@@ -20,12 +20,8 @@ dependencies:
   riverpod_annotation: ^2.6.1
   
   # Otot Background
-  #workmanager: ^0.5.2 #ganti untuk fluttter 3.29
-  workmanager:
-    git:
-      url: https://github.com/fluttercommunity/flutter_workmanager.git
-      path: packages/workmanager
-      ref: main
+  workmanager: ^0.10.10 #ganti untuk fluttter 3.29
+  
   # Cache Cepat
   isar_community: ^3.3.0-dev.1
   isar_community_flutter_libs: ^3.3.0-dev.1

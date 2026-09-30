@@ -21,10 +21,10 @@ dependencies:
   
   # Otot Background
   # workmanager: ^0.5.2 ganti untuk fluttter 3.29
-    workmanager:
-      git:
-        url: https://github.com/MaxRoversTech/flutter_workmanager.git
-        ref: fix/android-embedding-v2
+  workmanager:
+    git:
+      url: https://github.com/MaxRoversTech/flutter_workmanager.git
+      ref: fix/android-embedding-v2
   
   # Cache Cepat
   isar_community: ^3.3.0-dev.1

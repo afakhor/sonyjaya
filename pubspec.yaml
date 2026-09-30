@@ -4,14 +4,14 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.2.0 <4.0.0"
-  flutter: ">=3.16.0"
+  sdk: ">=3.6.0 <4.0.0"      # <- naik, karena source_gen 2.0.0 butuh Dart 3.6
+  flutter: ">=3.27.0"
 
 dependencies:
   flutter:
     sdk: flutter
   # Otak multifungsi
-  drift: ^2.28.2
+  drift: ^2.26.1             # <- naik biar sama-sama source_gen 2.x
   sqlite3_flutter_libs: ^0.5.42
   drift_flutter: ^0.2.7
   
@@ -28,13 +28,13 @@ dependencies:
 
   # Utils Toko Bangunan
   path_provider: ^2.1.2
-  path: ^1.9.0
+  path: ^1.9.0     # <- turun, karena flutter_test 3.29 ngunci 1.9.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  drift_dev: ^2.28.2
-  build_runner: ^2.5.4
+  drift_dev: ^2.26.1
+  build_runner: ^2.4.15
   riverpod_generator: ^2.6.5
   isar_community_generator: ^3.3.0-dev.1
   flutter_lints: ^3.0.2

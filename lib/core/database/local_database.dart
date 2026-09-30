@@ -26,7 +26,7 @@ class Barang extends Table {
 
 class Pembelian extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get barangId => integer().customConstraint('REFERENCES barang(id) ON DELETE CASCADE')();
+  IntColumn get barangId => integer().customConstraint('NOT NULL REFERENCES barang(id) ON DELETE CASCADE')();
   IntColumn get qtyPcs => integer()();
   RealColumn get hargaBeliPerPcs => real()();
   TextColumn get supplier => text().nullable()();
@@ -35,21 +35,21 @@ class Pembelian extends Table {
 
 class Penjualan extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get barangId => integer().customConstraint('REFERENCES barang(id) ON DELETE CASCADE')();
+  IntColumn get barangId => integer().customConstraint('NOT NULL REFERENCES barang(id) ON DELETE CASCADE')();
   IntColumn get qtyPcs => integer()();
   RealColumn get hargaJualPerPcs => real()();
   RealColumn get hppSnapshot => real()();
   RealColumn get laba => real()();
-  TextColumn get tipe => text().withDefault(const Constant('ecer'))(); // ecer | agen
+  TextColumn get tipe => text().withDefault(const Constant('ecer'))();
   DateTimeColumn get tanggal => dateTime().withDefault(currentDateAndTime)();
 }
 
 class KartuStok extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get barangId => integer().customConstraint('REFERENCES barang(id) ON DELETE CASCADE')();
-  TextColumn get tipe => text()(); // MASUK | KELUAR
-  IntColumn get qty => integer()(); // +10 atau -10
-  IntColumn get qtySisaLog => integer().withDefault(const Constant(0))(); // KUNCI FIFO TANPA BATCH
+  IntColumn get barangId => integer().customConstraint('NOT NULL REFERENCES barang(id) ON DELETE CASCADE')();
+  TextColumn get tipe => text()();
+  IntColumn get qty => integer()();
+  IntColumn get qtySisaLog => integer().withDefault(const Constant(0))();
   IntColumn get stokAkhir => integer()();
   RealColumn get hargaBeliSaatItu => real().withDefault(const Constant(0))();
   TextColumn get refId => text().nullable()();

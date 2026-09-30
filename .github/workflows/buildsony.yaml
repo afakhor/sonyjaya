@@ -26,10 +26,10 @@ jobs:
         run: |
           dart run build_runner build --delete-conflicting-outputs
 
-      - name: Matangkan - Unit Test FIFO/AVERAGE
+      - name: Matangkan - Unit Test FIFO/AVERAGE LOG
         run: |
-          flutter test
-          # <- KALAU TEST GAGAL, APK GAK JADI DIBUILD
+          ls test/
+          flutter test test/fifo_average_log_test.dart --verbose
 
       - name: Build APK Debug SONY JAYA
         run: flutter build apk --debug

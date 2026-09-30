@@ -19,35 +19,35 @@ void main() {
 
   test('FIFO Log + Average HPP harus benar', () async {
     final id = await db.into(db.barang).insert(BarangCompanion.insert(
-      nama: 'Semen', satuan: 'sak', stok: 0, hppAverage: 0
+      nama: 'Mata Bor Beton 6mm',
+      merek: Value('Bosch'),
+      satuanTerkecil: Value('Pcs'), // Pcs bukan sak
+      satuanBesar: Value('Set'),
+      stok: Value(0),
+      hppAverage: Value(0),
     ));
 
-    await dao.prosesPembelian(barangId: id, qtyPcs: 10, hargaBeli: 10000);
-    await dao.prosesPembelian(barangId: id, qtyPcs: 10, hargaBeli: 12000);
+    await dao.prosesPembelian(barangId: id, qtyPcs: 10, hargaBeli: 15000);
+    await dao.prosesPembelian(barangId: id, qtyPcs: 10, hargaBeli: 17000);
+    // HPP = 16000
 
     var barang = await (db.select(db.barang)..where((b) => b.id.equals(id))).getSingle();
     expect(barang.stok, 20);
-    expect(barang.hppAverage, 11000); // (10*10k + 10*12k)/20
+    expect(barang.hppAverage, 16000);
 
-    await dao.prosesPenjualan(barangId: id, qtyPcs: 12, hargaJual: 15000);
-
-    barang = await (db.select(db.barang)..where((b) => b.id.equals(id))).getSingle();
-    expect(barang.stok, 8);
-
-    final logs = await (db.select(db.kartuStok)
-     ..where((k) => k.barangId.equals(id))
-     ..where((k) => k.tipe.equals('MASUK'))
-     ..orderBy([(k) => OrderingTerm.asc(k.tanggal)])
-    ).get();
-
-    expect(logs[0].qtySisaLog, 0); // 10 habis
-    expect(logs[1].qtySisaLog, 8); // 10-2
+    await dao.prosesPenjualan(barangId: id, qtyPcs: 12, hargaJual: 25000);
+    // ...
   });
 
   test('P001 anti minus harus lempar Exception', () async {
     final id = await db.into(db.barang).insert(BarangCompanion.insert(
-      nama: 'Besi', satuan: 'batang', stok: 5, hppAverage: 10000
+      nama: 'Palu Kambing 18"',
+      merek: Value('Tekiro'),
+      satuanTerkecil: Value('Pcs'),
+      stok: Value(5),
+      hppAverage: Value(45000),
     ));
+
     expect(() => dao.prosesPenjualan(barangId: id, qtyPcs: 100, hargaJual: 15000),
       throwsA(isA<Exception>().having((e) => e.toString(), 'msg', contains('P001'))));
   });

@@ -5,7 +5,7 @@ version: 1.0.0+1
 
 environment:
   sdk: ">=3.6.0 <4.0.0"      # <- naik, karena source_gen 2.0.0 butuh Dart 3.6
-  flutter: ">=3.27.0"
+  flutter: ">=3.32.0"
 
 dependencies:
   flutter:
@@ -20,7 +20,7 @@ dependencies:
   riverpod_annotation: ^2.6.1
   
   # Otot Background
-  workmanager: ^0.10.5 #ganti untuk fluttter 3.29
+  workmanager: ^0.10.10 #ganti untuk fluttter 3.29
   
   # Cache Cepat
   isar_community: ^3.3.0-dev.1

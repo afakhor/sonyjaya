@@ -3,37 +3,52 @@ on:
   push:
     branches: [ main, master ]
   pull_request:
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Setup Gradle 8.13.0
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: 8.13.0
+
       - name: Setup Flutter 3.47.5
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.5'
           channel: 'master'
           cache: true
+
       - name: Install Linux deps
         run: sudo apt-get update && sudo apt-get install -y sqlite3 libsqlite3-dev clang cmake ninja-build pkg-config
-      - name: Force wrapper 8.13.0
+
+      - name: Download Gradle from GitHub Releases - bypass services.gradle.org WAF
+        run: |
+          echo "Downloading Gradle 8.10.2 from GitHub Releases..."
+          curl -L --retry 5 -o /tmp/gradle-8.10.2-bin.zip https://github.com/gradle/gradle/releases/download/v8.10.2/gradle-8.10.2-bin.zip
+          ls -lh /tmp/gradle-8.10.2-bin.zip
+          unzip -t /tmp/gradle-8.10.2-bin.zip | tail -5
+          cat > android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          distributionUrl=file\:///tmp/gradle-8.10.2-bin.zip
+          EOF
+          cat android/gradle/wrapper/gradle-wrapper.properties
+
+      - name: Build APK Debug
         run: |
           cd android && ./gradlew --version
-      - name: Clean
-        run: flutter clean
-      - name: Pub get
-        run: flutter pub get
-      - name: Build APK Debug
-        run: flutter build apk --debug --android-skip-build-dependency-validation
+          cd ..
+          flutter clean
+          flutter pub get
+          flutter build apk --debug --android-skip-build-dependency-validation
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:

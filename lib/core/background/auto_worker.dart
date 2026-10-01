@@ -11,16 +11,17 @@ void callbackDispatcher() {
     
     final barangs = await db.select(db.barang).get();
     for (final b in barangs) {
-      final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
-      
-      // FIX: Gunakan isBiggerThanValue untuk nilai DateTime mentah
+      // Ambil log transaksi keluar untuk barang ini dari Drift
       final logs = await (db.select(db.kartuStok)
         ..where((k) => k.barangId.equals(b.id))
         ..where((k) => k.tipe.equals('KELUAR'))
-        ..where((k) => k.tanggal.isBiggerThanValue(thirtyDaysAgo))
       ).get();
       
-      final totalKeluar = logs.fold<int>(0, (sum, item) => sum + item.qty.abs());
+      // Filter tanggal 30 hari terakhir di sisi Dart (Aman dari perbedaan versi Drift)
+      final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
+      final filteredLogs = logs.where((k) => k.tanggal.isAfter(thirtyDaysAgo)).toList();
+      
+      final totalKeluar = filteredLogs.fold<int>(0, (sum, item) => sum + item.qty.abs());
       final tor = b.stok == 0 ? 0.0 : totalKeluar / b.stok;
 
       await IsarService.syncFromDrift(

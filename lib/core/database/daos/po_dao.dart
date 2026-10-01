@@ -1,13 +1,17 @@
 import 'package:drift/drift.dart';
 import '../local_database.dart';
 import 'transaksi_dao.dart';
+
 part 'po_dao.g.dart';
 
 @DriftAccessor(tables: [PurchaseOrders, PurchaseOrderItems, Barang, KartuStok, Pembelian, Penjualan])
 class PoDao extends DatabaseAccessor<LocalDatabase> with _$PoDaoMixin {
-  final TransaksiDao transaksiDao;
+  late final TransaksiDao transaksiDao;
 
-  PoDao(super.db) : transaksiDao = TransaksiDao(db), super(db);
+  // FIX: Perbaikan konstruktor DAO tanpa bentrok super parameter
+  PoDao(LocalDatabase db) : super(db) {
+    transaksiDao = TransaksiDao(db);
+  }
 
   Future<int> buatPurchaseOrder({
     required String noPo,
@@ -36,7 +40,8 @@ class PoDao extends DatabaseAccessor<LocalDatabase> with _$PoDaoMixin {
           alamatRelasi: alamatRelasi,
           estimasiKirim: Value(estimasiKirim),
           statusBayar: Value(statusBayar),
-          totalKeseluruhan: grandTotal,
+          // FIX: Bungkus grandTotal dengan Value()
+          totalKeseluruhan: Value(grandTotal),
           statusPo: const Value('PENDING'),
         ),
       );

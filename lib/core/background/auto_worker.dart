@@ -12,8 +12,12 @@ void callbackDispatcher() {
     final barangs = await db.select(db.barang).get();
     for (final b in barangs) {
       final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
+      
+      // FIX: Gunakan chained .where() atau operator yang kompatibel dengan Drift v2.31+
       final logs = await (db.select(db.kartuStok)
-        ..where((k) => k.barangId.equals(b.id) & k.tipe.equals('KELUAR') & k.tanggal.isBiggerThanValue(thirtyDaysAgo))
+        ..where((k) => k.barangId.equals(b.id))
+        ..where((k) => k.tipe.equals('KELUAR'))
+        ..where((k) => k.tanggal.isBiggerThan(thirtyDaysAgo))
       ).get();
       
       final totalKeluar = logs.fold<int>(0, (sum, item) => sum + item.qty.abs());

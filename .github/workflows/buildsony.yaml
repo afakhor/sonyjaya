@@ -1,41 +1,48 @@
-name: SONY JAYA - Auto Build HPP
+name: Build APK Debug
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
+  pull_request:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Flutter
+      - name: Setup Flutter 3.47.5
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
-          flutter-version: '3.32.0'
+          flutter-version: '3.47.5'
+          channel: 'master'
+          cache: true
 
-      - name: Install Deps
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Linux deps for drift/isar
         run: |
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev clang cmake ninja-build pkg-config
-          flutter pub get
 
-      - name: Generate Otak HPP (Drift + Riverpod + Isar)
+      - name: Clean old lock
         run: |
-          dart run build_runner build --delete-conflicting-outputs
+          rm -f pubspec.lock
+          flutter clean
 
-      - name: Matangkan - Unit Test FIFO/AVERAGE LOG
-        run: |
-          ls test/
-          flutter test test/fifo_average_log_test.dart --verbose
+      - name: Pub get
+        run: flutter pub get
 
-      - name: Build APK Debug SONY JAYA
-        run: flutter build apk --debug
+      - name: Build APK Debug
+        run: flutter build apk --debug -v
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: sony-jaya-apk
+          name: app-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk

@@ -15,55 +15,39 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Flutter master 3.47.5 - Dart 3.10
+      - name: Setup Flutter master 3.47.5 Dart 3.10
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.5'
           channel: 'master'
           cache: true
 
-      - name: Download Gradle 8.13.0 dari GitHub Release - anti 9 byte
+      - name: Install Gradle 8.13.0 dari GitHub Releases
         run: |
-          GRADLE_VERSION=8.13.0
-          HASH=3u0wlv7sqf0pmdwvfx6uasd4k
-          DEST="$HOME/.gradle/wrapper/dists/gradle-${GRADLE_VERSION}-bin/$HASH"
-          mkdir -p "$DEST"
-          echo "Downloading gradle..."
-          # coba 3 mirror, yang tembus di GitHub Actions
-          curl -L -A "Mozilla/5.0" -o /tmp/gradle.zip https://github.com/gradle/gradle/releases/download/v${GRADLE_VERSION}/gradle-${GRADLE_VERSION}-bin.zip || true
-          ls -lh /tmp/gradle.zip
-          if [ $(stat -c%s /tmp/gradle.zip) -lt 1000000 ]; then
-            echo "GitHub release fail, coba ghproxy..."
-            curl -L -A "Mozilla/5.0" -o /tmp/gradle.zip https://ghproxy.com/https://github.com/gradle/gradle/releases/download/v${GRADLE_VERSION}/gradle-${GRADLE_VERSION}-bin.zip || true
-            ls -lh /tmp/gradle.zip
-          fi
-          if [ $(stat -c%s /tmp/gradle.zip) -lt 1000000 ]; then
-            echo "ghproxy fail, coba services..."
-            curl -L -A "Mozilla/5.0" -o /tmp/gradle.zip https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip || true
-            ls -lh /tmp/gradle.zip
-          fi
-          echo "Size:"
-          ls -lh /tmp/gradle.zip
-          cp /tmp/gradle.zip "$DEST/gradle-${GRADLE_VERSION}-bin.zip"
-          ls -lh "$DEST/"
+          cd /tmp
+          rm -f gradle.zip
+          curl -L -A "Mozilla/5.0" -o gradle.zip https://github.com/gradle/gradle/releases/download/v8.13.0/gradle-8.13.0-bin.zip
+          ls -lh gradle.zip
+          # harus 130M+, bukan 9
+          unzip -q gradle.zip -d /opt
+          /opt/gradle-8.13.0/bin/gradle --version
+          echo "/opt/gradle-8.13.0/bin" >> $GITHUB_PATH
 
-      - name: Fix wrapper ke 8.13.0
+      - name: Bypass gradlew wrapper - pakai gradle sistem
         run: |
-          cat > android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-8.13.0-bin.zip
-          EOF
-          cat android/gradle/wrapper/gradle-wrapper.properties
+          cat > android/gradlew << 'SH'
+          #!/usr/bin/env sh
+          exec /opt/gradle-8.13.0/bin/gradle "$@"
+          SH
+          chmod +x android/gradlew
+          cat android/gradlew
 
       - name: Build APK
         run: |
           flutter --version
           flutter clean
           flutter pub get
-          flutter build apk --debug --android-skip-build-dependency-validation
+          flutter build apk --debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

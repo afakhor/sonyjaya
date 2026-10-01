@@ -11,7 +11,8 @@ LocalDatabase localDb(LocalDbRef ref) => LocalDatabase();
 class Inventory extends _$Inventory {
   @override
   Stream<List<BarangData>> build() {
-    return ref.watch(localDbProvider).barangDao.watchAllBarang();
+    final db = ref.watch(localDbProvider);
+    return db.barangDao.watchAllBarang();
   }
 
   Future<void> beli({required int barangId, required int qty, required double harga}) async {
@@ -32,16 +33,23 @@ class Inventory extends _$Inventory {
 
     // Hitung TOR simpel: total keluar 30 hari / stok rata-rata
     final keluar30hari = await db.customSelect(
-      'SELECT SUM(ABS(qty)) as total FROM kartu_stok WHERE barang_id =? AND tipe = "KELUAR" AND tanggal > datetime("now", "-30 days")',
+      'SELECT SUM(ABS(qty)) as total FROM kartu_stok WHERE barang_id = ? AND tipe = "KELUAR" AND tanggal > datetime("now", "-30 days")',
       variables: [Variable.withInt(barangId)]
     ).getSingle();
-    final totalKeluar = keluar30hari.data['total']?? 0;
-    final tor = barang.stok == 0? 0.0 : (totalKeluar as int) / barang.stok;
+    
+    // Perbaikan casting agar aman dari null dan tipe data num
+    final rawTotal = keluar30hari.data['total'];
+    final totalKeluar = rawTotal != null ? (rawTotal as num).toInt() : 0;
+    final tor = barang.stok == 0 ? 0.0 : totalKeluar / barang.stok;
 
     await IsarService.syncFromDrift(
-      barangId: barang.id, nama: barang.nama, sku: barang.sku,
-      stok: barang.stok, safetyStock: barang.safetyStock,
-      hpp: barang.hppAverage, tor: tor.toDouble()
+      barangId: barang.id, 
+      nama: barang.nama, 
+      sku: barang.sku,
+      stok: barang.stok, 
+      safetyStock: barang.safetyStock,
+      hpp: barang.hppAverage, 
+      tor: tor.toDouble()
     );
   }
 }

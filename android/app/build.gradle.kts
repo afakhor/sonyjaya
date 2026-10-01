@@ -29,7 +29,7 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = true
-            pickFirsts += listOf("**/libsqlite3.so", "**/libsqlite.so") // <- tambah ini buat drift + isar di 3.47.5
+            pickFirsts += listOf("**/libsqlite3.so", "**/libsqlite.so")
         }
     }
 

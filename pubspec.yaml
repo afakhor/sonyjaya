@@ -14,17 +14,17 @@ dependencies:
   drift: ^2.28.2             # <- naik biar sama-sama source_gen 2.x
   sqlite3_flutter_libs: ^0.5.42
   drift_flutter: ^0.2.7
-  
+
   # Saraf super Reaktif
   flutter_riverpod: ^2.6.1
   riverpod_annotation: ^2.6.1
-  
+
   # Otot Background
-  workmanager: ^0.9.0+3 #ganti untuk fluttter 3.29
-  
+  workmanager: 0.9.0+3 #ganti untuk fluttter 3.29 - KUNCI TANPA ^ biar gak lompat ke 0.9.3 yang ada ForegroundServiceConfig
+
   # Cache Cepat
-  isar_community: ^3.2.0
-  isar_community_flutter_libs: ^3.2.0
+  isar_community: 3.2.0 # <- KUNCI 3.2.0 biar source_gen 2.x, jangan ^3.2.0 biar gak naik ke 3.3.2 yang butuh Dart 3.9
+  isar_community_flutter_libs: 3.2.0 # <- sama
 
   # Utils Toko Bangunan
   path_provider: ^2.1.2
@@ -38,8 +38,8 @@ dependency_overrides:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  drift_dev: ^2.26.1
-  build_runner: ^2.4.15
-  riverpod_generator: ^2.6.5
-  isar_community_generator: ^3.3.0-dev.1
+  drift_dev: ^2.28.2 # <- naik biar sinkron sama drift ^2.28.2
+  build_runner: ^2.4.13
+  riverpod_generator: 2.6.5 # <- KUNCI TANPA ^ biar tetep source_gen 2.x
+  isar_community_generator: 3.2.0 # <- KUNCI 3.2.0, jangan ^3.3.0-dev.1 yang butuh source_gen 4.x
   flutter_lints: ^3.0.2

@@ -32,6 +32,9 @@ jobs:
           flutter clean
           flutter pub get
           
+          # TAMBAHKAN INI: Generate ulang file .g.dart (Isar & Riverpod)
+          flutter pub run build_runner build --delete-conflicting-outputs
+
           echo "=== BEFORE PATCH ==="
           cat android/settings.gradle.kts | grep -i "android"
           cat android/gradle/wrapper/gradle-wrapper.properties

@@ -2,14 +2,14 @@ import 'package:drift/drift.dart';
 import '../local_database.dart';
 part 'transaksi_dao.g.dart';
 
-@DriftAccessor(tables: [Barang, Pembelian, Penjualan, KartuStok])
+@DriftAccessor(tables: [Barang, Pembelian, Penjualan, KartuStok, StockOpname])
 class TransaksiDao extends DatabaseAccessor<LocalDatabase> with _$TransaksiDaoMixin {
   TransaksiDao(super.db);
 
   Future<void> prosesPembelian({required int barangId, required int qtyPcs, required double hargaBeli, String? supplier}) async {
     await transaction(() async {
       final barang = await (select(db.barang)..where((b) => b.id.equals(barangId))).getSingle();
-      final hppBaru = (barang.stok + qtyPcs) == 0? hargaBeli : ((barang.stok * barang.hppAverage) + (qtyPcs * hargaBeli)) / (barang.stok + qtyPcs);
+      final hppBaru = (barang.stok + qtyPcs) == 0 ? hargaBeli : ((barang.stok * barang.hppAverage) + (qtyPcs * hargaBeli)) / (barang.stok + qtyPcs);
       final stokBaru = barang.stok + qtyPcs;
 
       await (update(db.barang)..where((b) => b.id.equals(barangId))).write(
@@ -31,6 +31,10 @@ class TransaksiDao extends DatabaseAccessor<LocalDatabase> with _$TransaksiDaoMi
     await transaction(() async {
       final barang = await (select(db.barang)..where((b) => b.id.equals(barangId))).getSingle();
       if (barang.stok < qtyPcs) throw Exception('P001 STOK ${barang.nama} MINUS DITOLAK. Sisa ${barang.stok}');
+      
+      if (hargaJual < barang.hppAverage) {
+        throw Exception('MARGIN GUARD: Harga jual di bawah HPP (${barang.hppAverage}) ditolak!');
+      }
 
       int sisaJual = qtyPcs;
       final logs = await (select(db.kartuStok)
@@ -42,7 +46,7 @@ class TransaksiDao extends DatabaseAccessor<LocalDatabase> with _$TransaksiDaoMi
 
       for (final log in logs) {
         if (sisaJual <= 0) break;
-        final ambil = sisaJual > log.qtySisaLog? log.qtySisaLog : sisaJual;
+        final ambil = sisaJual > log.qtySisaLog ? log.qtySisaLog : sisaJual;
         await (update(db.kartuStok)..where((k) => k.id.equals(log.id))).write(
           KartuStokCompanion(qtySisaLog: Value(log.qtySisaLog - ambil))
         );
@@ -63,6 +67,37 @@ class TransaksiDao extends DatabaseAccessor<LocalDatabase> with _$TransaksiDaoMi
 
       await into(db.kartuStok).insert(KartuStokCompanion.insert(
         barangId: barangId, tipe: 'KELUAR', qty: -qtyPcs, stokAkhir: stokBaru, refId: Value('JUAL-$idJual')
+      ));
+    });
+  }
+
+  Future<void> prosesStockOpname({required int barangId, required int stokFisik, String? keterangan}) async {
+    await transaction(() async {
+      final barang = await (select(db.barang)..where((b) => b.id.equals(barangId))).getSingle();
+      final selisih = stokFisik - barang.stok;
+      if (selisih == 0) return;
+
+      await (update(db.barang)..where((b) => b.id.equals(barangId))).write(
+        BarangCompanion(stok: Value(stokFisik), updatedAt: Value(DateTime.now()))
+      );
+
+      await into(db.stockOpname).insert(StockOpnameCompanion.insert(
+        barangId: barangId,
+        stokSistem: barang.stok,
+        stokFisik: stokFisik,
+        selisih: selisih,
+        hppSaatOpname: barang.hppAverage,
+        keterangan: Value(keterangan ?? 'Opname Mandiri Gudang'),
+      ));
+
+      await into(db.kartuStok).insert(KartuStokCompanion.insert(
+        barangId: barangId,
+        tipe: selisih > 0 ? 'OPNAME_MASUK' : 'OPNAME_KELUAR',
+        qty: selisih.abs(),
+        qtySisaLog: Value(selisih > 0 ? selisih : 0),
+        stokAkhir: stokFisik,
+        hargaBeliSaatItu: Value(barang.hppAverage),
+        refId: Value('OPNAME-${DateTime.now().millisecondsSinceEpoch}'),
       ));
     });
   }

@@ -4,6 +4,7 @@ import 'package:drift/drift.dart' as drift;
 import '../../../core/database/local_database.dart';
 
 final selectedItemLogProvider = StateProvider<int?>((ref) => null);
+final databaseProvider = Provider<LocalDatabase>((ref) => LocalDatabase());
 
 class LogScreen extends ConsumerWidget {
   const LogScreen({super.key});
@@ -13,7 +14,7 @@ class LogScreen extends ConsumerWidget {
     const primaryColor = Color(0xFF1E293B);
 
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Pusat Log & Audit Toko'),
@@ -29,6 +30,7 @@ class LogScreen extends ConsumerWidget {
               Tab(text: 'Log Penjualan'),
               Tab(text: 'Log Pembelian'),
               Tab(text: 'Log Opname'),
+              Tab(text: 'Log Purchase Order (PO)'),
             ],
           ),
         ),
@@ -38,6 +40,7 @@ class LogScreen extends ConsumerWidget {
             LogPenjualanTab(),
             LogPembelianTab(),
             LogOpnameTab(),
+            LogPoTab(),
           ],
         ),
       ),
@@ -45,13 +48,13 @@ class LogScreen extends ConsumerWidget {
   }
 }
 
-// 1. Tab Log Kartu Stok (Bisa Filter Berdasarkan Barang)
+// 1. Tab Log Kartu Stok
 class LogStokTab extends ConsumerWidget {
   const LogStokTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final db = LocalDatabase();
+    final db = ref.watch(databaseProvider);
     final selectedBarangId = ref.watch(selectedItemLogProvider);
 
     return Column(
@@ -96,7 +99,7 @@ class LogStokTab extends ConsumerWidget {
                   return ListTile(
                     leading: Icon(isMasuk ? Icons.arrow_downward : Icons.arrow_upward, color: isMasuk ? Colors.green : Colors.red),
                     title: Text('Mutasi: ${item.tipe} (${item.qty > 0 ? "+${item.qty}" : item.qty})'),
-                    subtitle: Text('Sisa Stok Akhir: ${item.stokAkhir} | Tgl: ${item.tanggal}'),
+                    subtitle: Text('Sisa Stok Akhir: ${item.stokAkhir} | Tgl: ${item.tanggal.toLocal().toString().split('.')[0]}'),
                   );
                 },
               );
@@ -109,12 +112,12 @@ class LogStokTab extends ConsumerWidget {
 }
 
 // 2. Tab Log Penjualan
-class LogPenjualanTab extends StatelessWidget {
+class LogPenjualanTab extends ConsumerWidget {
   const LogPenjualanTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final db = LocalDatabase();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(databaseProvider);
     return StreamBuilder<List<PenjualanData>>(
       stream: (db.select(db.penjualan)..orderBy([(p) => drift.OrderingTerm.desc(p.tanggal)])).watch(),
       builder: (context, snapshot) {
@@ -127,8 +130,8 @@ class LogPenjualanTab extends StatelessWidget {
             final p = list[index];
             return ListTile(
               title: Text('ID Transaksi: #${p.id} (Tipe: ${p.tipe})'),
-              subtitle: Text('Qty: ${p.qtyPcs} | HPP Snapshot: Rp ${p.hppSnapshot}'),
-              trailing: Text('Laba: Rp ${p.laba}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+              subtitle: Text('Qty: ${p.qtyPcs} Pcs | HPP: Rp ${p.hppSnapshot.toStringAsFixed(0)}'),
+              trailing: Text('Laba: Rp ${p.laba.toStringAsFixed(0)}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
             );
           },
         );
@@ -138,12 +141,12 @@ class LogPenjualanTab extends StatelessWidget {
 }
 
 // 3. Tab Log Pembelian
-class LogPembelianTab extends StatelessWidget {
+class LogPembelianTab extends ConsumerWidget {
   const LogPembelianTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final db = LocalDatabase();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(databaseProvider);
     return StreamBuilder<List<PembelianData>>(
       stream: (db.select(db.pembelian)..orderBy([(p) => drift.OrderingTerm.desc(p.tanggal)])).watch(),
       builder: (context, snapshot) {
@@ -156,7 +159,7 @@ class LogPembelianTab extends StatelessWidget {
             final pb = list[index];
             return ListTile(
               title: Text('Supplier: ${pb.supplier ?? "Umum"}'),
-              subtitle: Text('Qty Masuk: ${pb.qtyPcs} Pcs | Harga Beli: Rp ${pb.hargaBeliPerPcs}'),
+              subtitle: Text('Qty Masuk: ${pb.qtyPcs} Pcs | Beli: Rp ${pb.hargaBeliPerPcs.toStringAsFixed(0)}'),
               trailing: Text(pb.tanggal.toLocal().toString().split('.')[0], style: const TextStyle(fontSize: 12)),
             );
           },
@@ -167,12 +170,12 @@ class LogPembelianTab extends StatelessWidget {
 }
 
 // 4. Tab Log Opname
-class LogOpnameTab extends StatelessWidget {
+class LogOpnameTab extends ConsumerWidget {
   const LogOpnameTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final db = LocalDatabase();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(databaseProvider);
     return StreamBuilder<List<StockOpnameData>>(
       stream: (db.select(db.stockOpname)..orderBy([(s) => drift.OrderingTerm.desc(s.tanggal)])).watch(),
       builder: (context, snapshot) {
@@ -187,6 +190,43 @@ class LogOpnameTab extends StatelessWidget {
               title: Text('Selisih Fisik: ${op.selisih}'),
               subtitle: Text('Sistem: ${op.stokSistem} | Fisik: ${op.stokFisik} | Ket: ${op.keterangan ?? "-"}'),
               trailing: Text(op.tanggal.toLocal().toString().split('.')[0], style: const TextStyle(fontSize: 12)),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+// 5. Tab Log Purchase Order (Otomatis Selesai)
+class LogPoTab extends ConsumerWidget {
+  const LogPoTab({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final db = ref.watch(databaseProvider);
+    return StreamBuilder<List<PurchaseOrderData>>(
+      stream: (db.select(db.purchaseOrders)..orderBy([(p) => drift.OrderingTerm.desc(p.tanggalBuat)])).watch(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        final list = snapshot.data!;
+        if (list.isEmpty) return const Center(child: Text('Belum ada data Purchase Order (PO).'));
+        return ListView.builder(
+          itemCount: list.length,
+          itemBuilder: (context, index) {
+            final po = list[index];
+            return ListTile(
+              leading: Icon(
+                po.tipePo == 'VENDOR' ? Icons.local_shipping : Icons.shopping_bag,
+                color: Colors.green,
+              ),
+              title: Text('No. PO: ${po.noPo} (${po.tipePo})'),
+              subtitle: Text('Relasi: ${po.namaRelasi} | Total: Rp ${po.totalKeseluruhan.toStringAsFixed(0)}\nStatus: ${po.statusPo} (Auto Synced)'),
+              isThreeLine: true,
+              trailing: Text(
+                po.tanggalBuat.toLocal().toString().split('.')[0],
+                style: const TextStyle(fontSize: 11),
+              ),
             );
           },
         );

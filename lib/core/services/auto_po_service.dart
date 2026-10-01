@@ -2,7 +2,7 @@ import '../database/local_database.dart';
 
 class AutoPoService {
   static Future<List<Map<String, dynamic>>> generateDraftPo(LocalDatabase db) async {
-    // FIX: Gunakan isSmallerOrEqual standar Drift
+    // FIX: Bandingkan kolom stok dengan kolom safetyStock menggunakan operator atau ekspresi Drift
     final barangs = await (db.select(db.barang)..where((b) => b.stok.isSmallerOrEqual(b.safetyStock))).get();
     
     final List<Map<String, dynamic>> draftList = [];

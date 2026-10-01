@@ -15,56 +15,33 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Flutter 3.47.5
+      - name: Setup Gradle 8.10.2 - no curl
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.10.2
+
+      - name: Setup Flutter Stable 3.24.5
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.5'
-          channel: 'master'
+          flutter-version: '3.24.5'
+          channel: 'stable'
           cache: true
 
       - name: Install deps
         run: sudo apt-get update && sudo apt-get install -y sqlite3 libsqlite3-dev clang cmake ninja-build pkg-config
 
-      - name: Download Gradle 8.13.0 from GitHub Releases (bypass WAF)
-        run: |
-          curl -L --retry 5 -o /tmp/gradle-8.13.0-bin.zip https://github.com/gradle/gradle/releases/download/v8.13.0/gradle-8.13.0-bin.zip
-          ls -lh /tmp/gradle-8.13.0-bin.zip
-          du -h /tmp/gradle-8.13.0-bin.zip
-          unzip -t /tmp/gradle-8.13.0-bin.zip | tail -3
-          # harus 133M dan OK
-
-      - name: Ensure gradlew exists
+      - name: Ensure gradlew
         run: |
           if [ ! -f android/gradlew ]; then
             flutter create --platforms=android .
           fi
           chmod +x android/gradlew
-          ls -lh android/gradlew
-
-      - name: Force wrapper to use local zip - AFTER flutter create
-        run: |
-          cat > android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          distributionUrl=file\:///tmp/gradle-8.13.0-bin.zip
-          EOF
-          cat android/gradle/wrapper/gradle-wrapper.properties
 
       - name: Build APK Debug
         run: |
           flutter clean
           flutter pub get
-          # overwrite lagi setelah pub get, karena pub get kadang upgrade wrapper
-          cat > android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          distributionUrl=file\:///tmp/gradle-8.13.0-bin.zip
-          EOF
-          flutter build apk --debug --android-skip-build-dependency-validation
+          flutter build apk --debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

@@ -2,16 +2,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/database/local_database.dart';
 import '../../core/cache/isar_service.dart';
 
-// 1. Provider untuk LocalDatabase instance
+// Provider untuk LocalDatabase instance
 final localDbProvider = Provider<LocalDatabase>((ref) => LocalDatabase());
 
-// 2. Stream Provider untuk memantau seluruh barang secara reaktif
+// Stream Provider untuk memantau seluruh barang secara reaktif
 final inventoryStreamProvider = StreamProvider.autoDispose<List<BarangData>>((ref) {
   final db = ref.watch(localDbProvider);
   return db.barangDao.watchAllBarang();
 });
 
-// 3. Controller untuk aksi Beli & Jual
+// Controller untuk aksi Beli & Jual
 final inventoryControllerProvider = Provider<InventoryController>((ref) {
   return InventoryController(ref);
 });

@@ -6,37 +6,90 @@ part 'transaksi_dao.g.dart';
 class TransaksiDao extends DatabaseAccessor<LocalDatabase> with _$TransaksiDaoMixin {
   TransaksiDao(super.db);
 
-  Future<void> prosesPembelian({required int barangId, required int qtyPcs, required double hargaBeli, String? supplier}) async {
+  /// Proses Pembelian (Mendukung Satuan Kecil atau Konversi Satuan Besar ke Pcs)
+  Future<void> prosesPembelian({
+    required int barangId, 
+    required int qtyInput, 
+    required double hargaBeliPerSatuanInput, 
+    bool isSatuanBesar = false, // True jika beli dalam Dus/Roll
+    String? supplier
+  }) async {
     await transaction(() async {
       final barang = await (select(db.barang)..where((b) => b.id.equals(barangId))).getSingle();
-      final hppBaru = (barang.stok + qtyPcs) == 0 ? hargaBeli : ((barang.stok * barang.hppAverage) + (qtyPcs * hargaBeli)) / (barang.stok + qtyPcs);
-      final stokBaru = barang.stok + qtyPcs;
+      
+      // Konversi ke basis Pcs jika input menggunakan satuan besar
+      final int multiplier = isSatuanBesar ? barang.konversi : 1;
+      final int qtyPcsTotal = qtyInput * multiplier;
+      final double hargaBeliPerPcs = isSatuanBesar ? (hargaBeliPerSatuanInput / multiplier) : hargaBeliPerSatuanInput;
 
+      // Hitung HPP Rata-rata Tertimbang (Weighted Average HPP)
+      final stokLama = barang.stok;
+      final stokBaru = stokLama + qtyPcsTotal;
+      
+      final hppBaru = stokBaru == 0 
+          ? hargaBeliPerPcs 
+          : ((stokLama * barang.hppAverage) + (qtyPcsTotal * hargaBeliPerPcs)) / stokBaru;
+
+      // Update Data Barang
       await (update(db.barang)..where((b) => b.id.equals(barangId))).write(
-        BarangCompanion(stok: Value(stokBaru), hppAverage: Value(hppBaru), updatedAt: Value(DateTime.now()))
+        BarangCompanion(
+          stok: Value(stokBaru), 
+          hppAverage: Value(hppBaru), 
+          updatedAt: Value(DateTime.now()),
+        )
       );
 
+      // Catat ke Tabel Pembelian
       final idBeli = await into(db.pembelian).insert(
-        PembelianCompanion.insert(barangId: barangId, qtyPcs: qtyPcs, hargaBeliPerPcs: hargaBeli, supplier: Value(supplier))
+        PembelianCompanion.insert(
+          barangId: barangId, 
+          qtyPcs: qtyPcsTotal, 
+          hargaBeliPerPcs: hargaBeliPerPcs, 
+          supplier: Value(supplier),
+        )
       );
 
+      // Catat ke Kartu Stok (FIFO Masuk dengan sisa log)
       await into(db.kartuStok).insert(KartuStokCompanion.insert(
-        barangId: barangId, tipe: 'MASUK', qty: qtyPcs, qtySisaLog: Value(qtyPcs),
-        stokAkhir: stokBaru, hargaBeliSaatItu: Value(hargaBeli), refId: Value('BELI-$idBeli')
+        barangId: barangId, 
+        tipe: 'MASUK', 
+        qty: qtyPcsTotal, 
+        qtySisaLog: Value(qtyPcsTotal),
+        stokAkhir: stokBaru, 
+        hargaBeliSaatItu: Value(hargaBeliPerPcs), 
+        refId: Value('BELI-$idBeli'),
       ));
     });
   }
 
-  Future<void> prosesPenjualan({required int barangId, required int qtyPcs, required double hargaJual, String tipe = 'ecer'}) async {
+  /// Proses Penjualan (Mendukung Satuan Kecil / Besar + FIFO & Margin Guardian)
+  Future<void> prosesPenjualan({
+    required int barangId, 
+    required int qtyInput, 
+    required double hargaJualPerSatuanInput, 
+    bool isSatuanBesar = false, // True jika jual dalam Dus/Roll
+    String tipe = 'ecer'
+  }) async {
     await transaction(() async {
       final barang = await (select(db.barang)..where((b) => b.id.equals(barangId))).getSingle();
-      if (barang.stok < qtyPcs) throw Exception('P001 STOK ${barang.nama} MINUS DITOLAK. Sisa ${barang.stok}');
       
-      if (hargaJual < barang.hppAverage) {
-        throw Exception('MARGIN GUARD: Harga jual di bawah HPP (${barang.hppAverage}) ditolak!');
+      // Konversi ke basis Pcs
+      final int multiplier = isSatuanBesar ? barang.konversi : 1;
+      final int qtyPcsTotal = qtyInput * multiplier;
+      final double hargaJualPerPcs = isSatuanBesar ? (hargaJualPerSatuanInput / multiplier) : hargaJualPerSatuanInput;
+
+      // Validasi Stok
+      if (barang.stok < qtyPcsTotal) {
+        throw Exception('P001 STOK ${barang.nama} MINUS DITOLAK. Sisa ${barang.stok}, Diminta ${qtyPcsTotal}');
       }
 
-      int sisaJual = qtyPcs;
+      // Validasi Margin Guardian (Cegah Jual di Bawah HPP)
+      if (hargaJualPerPcs < barang.hppAverage) {
+        throw Exception('MARGIN GUARD: Harga jual (Rp $hargaJualPerPcs) di bawah HPP (Rp ${barang.hppAverage}) ditolak!');
+      }
+
+      // Eksekusi Pemotongan Stok FIFO dari Log Masuk
+      int sisaJual = qtyPcsTotal;
       final logs = await (select(db.kartuStok)
        ..where((k) => k.barangId.equals(barangId))
        ..where((k) => k.tipe.equals('MASUK'))
@@ -53,24 +106,38 @@ class TransaksiDao extends DatabaseAccessor<LocalDatabase> with _$TransaksiDaoMi
         sisaJual -= ambil;
       }
 
-      final stokBaru = barang.stok - qtyPcs;
-      final laba = (hargaJual - barang.hppAverage) * qtyPcs;
+      final stokBaru = barang.stok - qtyPcsTotal;
+      final totalOmset = hargaJualPerSatuanInput * qtyInput;
+      final totalHpp = barang.hppAverage * qtyPcsTotal;
+      final laba = totalOmset - totalHpp;
 
+      // Update Stok Barang Utama
       await (update(db.barang)..where((b) => b.id.equals(barangId))).write(
         BarangCompanion(stok: Value(stokBaru), updatedAt: Value(DateTime.now()))
       );
 
+      // Catat ke Tabel Penjualan
       final idJual = await into(db.penjualan).insert(PenjualanCompanion.insert(
-        barangId: barangId, qtyPcs: qtyPcs, hargaJualPerPcs: hargaJual,
-        hppSnapshot: barang.hppAverage, laba: laba, tipe: Value(tipe)
+        barangId: barangId, 
+        qtyPcs: qtyPcsTotal, 
+        hargaJualPerPcs: hargaJualPerPcs,
+        hppSnapshot: barang.hppAverage, 
+        laba: laba, 
+        tipe: Value(tipe),
       ));
 
+      // Catat ke Kartu Stok Keluar
       await into(db.kartuStok).insert(KartuStokCompanion.insert(
-        barangId: barangId, tipe: 'KELUAR', qty: -qtyPcs, stokAkhir: stokBaru, refId: Value('JUAL-$idJual')
+        barangId: barangId, 
+        tipe: 'KELUAR', 
+        qty: -qtyPcsTotal, 
+        stokAkhir: stokBaru, 
+        refId: Value('JUAL-$idJual'),
       ));
     });
   }
 
+  /// Proses Stock Opname (Koreksi Fisik Gudang)
   Future<void> prosesStockOpname({required int barangId, required int stokFisik, String? keterangan}) async {
     await transaction(() async {
       final barang = await (select(db.barang)..where((b) => b.id.equals(barangId))).getSingle();

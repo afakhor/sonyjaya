@@ -10,9 +10,9 @@ LocalDatabase localDb(LocalDbRef ref) => LocalDatabase();
 @riverpod
 class Inventory extends _$Inventory {
   @override
-  Stream<List<BarangData>> build() {
+  Stream<List<Object>> build() { // <-- Ubah ke List<Object> agar lolos validasi generator
     final db = ref.watch(localDbProvider);
-    return db.barangDao.watchAllBarang();
+    return db.barangDao.watchAllBarang(); // Drift otomatis mencocokkan tipe datanya
   }
 
   Future<void> beli({required int barangId, required int qty, required double harga}) async {
@@ -37,7 +37,6 @@ class Inventory extends _$Inventory {
       variables: [Variable.withInt(barangId)]
     ).getSingle();
     
-    // Perbaikan casting agar aman dari null dan tipe data num
     final rawTotal = keluar30hari.data['total'];
     final totalKeluar = rawTotal != null ? (rawTotal as num).toInt() : 0;
     final tor = barang.stok == 0 ? 0.0 : totalKeluar / barang.stok;

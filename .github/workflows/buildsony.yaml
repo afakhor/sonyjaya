@@ -30,11 +30,23 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev clang cmake ninja-build pkg-config
 
-      - name: Fix Gradle download - use local file://
+      - name: Fix Gradle download - bypass GitHub block
         run: |
-          echo "Downloading Gradle 8.13.0 via curl..."
-          curl -L --retry 5 --retry-delay 3 -o /tmp/gradle-8.13.0-bin.zip https://services.gradle.org/distributions/gradle-8.13.0-bin.zip
+          rm -f /tmp/gradle-8.13.0-bin.zip
+          echo "Downloading Gradle 8.13.0 with Browser UA..."
+          curl -A "Mozilla/5.0" -L --retry 5 --retry-delay 3 -o /tmp/gradle-8.13.0-bin.zip https://services.gradle.org/distributions/gradle-8.13.0-bin.zip
           ls -lh /tmp/gradle-8.13.0-bin.zip
+          
+          # Validasi zip, kalau corrupt coba mirror Tencent
+          if ! unzip -t /tmp/gradle-8.13.0-bin.zip > /dev/null 2>&1; then
+            echo "First download corrupt, trying Tencent mirror..."
+            rm -f /tmp/gradle-8.13.0-bin.zip
+            curl -A "Mozilla/5.0" -L --retry 5 -o /tmp/gradle-8.13.0-bin.zip https://mirrors.cloud.tencent.com/gradle/gradle-8.13.0-bin.zip
+            ls -lh /tmp/gradle-8.13.0-bin.zip
+            unzip -t /tmp/gradle-8.13.0-bin.zip
+          fi
+
+          # Overwrite wrapper properties pakai file:// lokal
           cat > android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
           distributionBase=GRADLE_USER_HOME
           distributionPath=wrapper/dists

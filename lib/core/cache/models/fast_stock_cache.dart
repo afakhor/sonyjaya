@@ -8,12 +8,16 @@ class FastStockCache {
   @Index(unique: true)
   int barangId = 0;
 
+  @Index(type: IndexType.value)
   String nama = '';
+  
+  @Index(type: IndexType.value)
   String sku = '';
+  
   int stok = 0;
   int safetyStock = 5;
   double hppAverage = 0;
-  double tor = 0; // Turnover Rate
+  double tor = 0; 
   bool isFastMoving = false;
   bool perluReorder = false;
   DateTime lastUpdated = DateTime.now();

@@ -30,6 +30,7 @@ class PoDao extends DatabaseAccessor<LocalDatabase> with _$PoDaoMixin {
         grandTotal += sub;
       }
 
+      // 1. Langsung simpan dengan status SELESAI (Auto)
       final poId = await into(db.purchaseOrders).insert(
         PurchaseOrdersCompanion.insert(
           noPo: noPo,
@@ -40,7 +41,7 @@ class PoDao extends DatabaseAccessor<LocalDatabase> with _$PoDaoMixin {
           estimasiKirim: Value(estimasiKirim),
           statusBayar: Value(statusBayar),
           totalKeseluruhan: Value(grandTotal),
-          statusPo: const Value('PENDING'),
+          statusPo: const Value('SELESAI'),
         ),
       );
 
@@ -63,44 +64,28 @@ class PoDao extends DatabaseAccessor<LocalDatabase> with _$PoDaoMixin {
             hppSaatTransaksi: barang.hppAverage,
           ),
         );
-      }
 
-      return poId;
-    });
-  }
-
-  Future<void> selesaikanDanSinkronkanPo(int poId) async {
-    await transaction(() async {
-      final po = await (select(db.purchaseOrders)..where((p) => p.id.equals(poId))).getSingle();
-      if (po.statusPo == 'SELESAI') return; 
-
-      final items = await (select(db.purchaseOrderItems)..where((i) => i.poId.equals(poId))).get();
-
-      for (var item in items) {
-        if (po.tipePo == 'VENDOR') {
-          // DISESUAIKAN: Menggunakan parameter 'qtyInput' & 'hargaBeliPerSatuanInput' sesuai transaksi_dao.dart
+        // 2. OTOMATIS SINKRONKAN STOK SEKETIKA SAAT PO DIBUAT
+        if (tipePo == 'VENDOR') {
           await transaksiDao.prosesPembelian(
-            barangId: item.barangId,
-            qtyInput: item.qty,
-            hargaBeliPerSatuanInput: item.hargaSatuan,
-            supplier: po.namaRelasi,
-            isSatuanBesar: false, // Ubah ke true jika satuan PO menggunakan satuan besar
+            barangId: barangId,
+            qtyInput: qty,
+            hargaBeliPerSatuanInput: hargaSatuan,
+            supplier: namaRelasi,
+            isSatuanBesar: false,
           );
-        } else if (po.tipePo == 'CUSTOMER') {
-          // DISESUAIKAN: Menggunakan parameter 'qtyInput' & 'hargaJualPerSatuanInput' sesuai transaksi_dao.dart
+        } else if (tipePo == 'CUSTOMER') {
           await transaksiDao.prosesPenjualan(
-            barangId: item.barangId,
-            qtyInput: item.qty,
-            hargaJualPerSatuanInput: item.hargaSatuan,
+            barangId: barangId,
+            qtyInput: qty,
+            hargaJualPerSatuanInput: hargaSatuan,
             tipe: 'po_customer',
-            isSatuanBesar: false, // Ubah ke true jika satuan PO menggunakan satuan besar
+            isSatuanBesar: false,
           );
         }
       }
 
-      await (update(db.purchaseOrders)..where((p) => p.id.equals(poId))).write(
-        const PurchaseOrdersCompanion(statusPo: Value('SELESAI'))
-      );
+      return poId;
     });
   }
 }

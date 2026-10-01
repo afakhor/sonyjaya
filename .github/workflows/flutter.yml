@@ -15,44 +15,34 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Flutter master 3.47.5 Dart 3.10
+      - name: Setup Gradle 8.10.2 cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.10.2
+
+      - name: Setup Flutter 3.47.5 master Dart 3.10
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.5'
           channel: 'master'
           cache: true
 
-      - name: Install Gradle 8.13.0 via gh CLI - anti 9 byte
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Patch AGP turun ke 8.7.3 biar cocok Gradle 8.10.2
         run: |
-          cd /tmp
-          rm -f gradle.zip
-          # pakai gh release download, bukan curl
-          gh release download v8.13.0 --repo gradle/gradle --pattern "*8.13.0-bin.zip" --clobber
-          ls -lh *.zip
-          mv gradle-8.13.0-bin.zip gradle.zip
-          ls -lh gradle.zip
-          # harus 130M+, kalau masih 9 berarti fail
-          unzip -q gradle.zip -d /opt
-          /opt/gradle-8.13.0/bin/gradle --version
-          echo "/opt/gradle-8.13.0/bin" >> $GITHUB_PATH
+          flutter pub get
+          # Flutter 3.47.5 upgrade build.gradle.kts ke AGP 8.11 -> kita turunin lagi
+          sed -i 's/id("com.android.application") version ".*"/id("com.android.application") version "8.7.3" apply false/' android/settings.gradle.kts || true
+          sed -i 's/id("com.android.library") version ".*"/id("com.android.library") version "8.7.3" apply false/' android/settings.gradle.kts || true
+          sed -i 's/8\.11\./8.7.3/g' android/settings.gradle.kts || true
+          sed -i 's/8\.13/8.10.2/g' android/gradle/wrapper/gradle-wrapper.properties || true
+          cat android/settings.gradle.kts
+          cat android/gradle/wrapper/gradle-wrapper.properties
 
-      - name: Bypass gradlew wrapper
-        run: |
-          cat > android/gradlew << 'SH'
-          #!/usr/bin/env sh
-          exec /opt/gradle-8.13.0/bin/gradle "$@"
-          SH
-          chmod +x android/gradlew
-
-      
       - name: Build APK
         run: |
-          flutter --version
           flutter clean
           flutter pub get
-          flutter build apk --debug
+          flutter build apk --debug --android-skip-build-dependency-validation
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

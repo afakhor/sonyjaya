@@ -8,7 +8,6 @@ part 'po_dao.g.dart';
 class PoDao extends DatabaseAccessor<LocalDatabase> with _$PoDaoMixin {
   late final TransaksiDao transaksiDao;
 
-  // FIX: Konstruktor standar DatabaseAccessor Drift
   PoDao(LocalDatabase db) : super(db) {
     transaksiDao = TransaksiDao(db);
   }
@@ -25,7 +24,7 @@ class PoDao extends DatabaseAccessor<LocalDatabase> with _$PoDaoMixin {
   }) async {
     return await transaction(() async {
       double grandTotal = 0;
-      
+
       for (var item in items) {
         final double sub = (item['qty'] as int) * (item['hargaSatuan'] as double);
         grandTotal += sub;
@@ -48,7 +47,7 @@ class PoDao extends DatabaseAccessor<LocalDatabase> with _$PoDaoMixin {
       for (var item in items) {
         final int barangId = item['barangId'];
         final barang = await (select(db.barang)..where((b) => b.id.equals(barangId))).getSingle();
-        
+
         final int qty = item['qty'];
         final double hargaSatuan = item['hargaSatuan'];
         final double subtotal = qty * hargaSatuan;
@@ -79,18 +78,22 @@ class PoDao extends DatabaseAccessor<LocalDatabase> with _$PoDaoMixin {
 
       for (var item in items) {
         if (po.tipePo == 'VENDOR') {
+          // DISESUAIKAN: Menggunakan parameter 'qtyInput' & 'hargaBeliPerSatuanInput' sesuai transaksi_dao.dart
           await transaksiDao.prosesPembelian(
             barangId: item.barangId,
-            qtyPcs: item.qty,
-            hargaBeli: item.hargaSatuan,
+            qtyInput: item.qty,
+            hargaBeliPerSatuanInput: item.hargaSatuan,
             supplier: po.namaRelasi,
+            isSatuanBesar: false, // Ubah ke true jika satuan PO menggunakan satuan besar
           );
         } else if (po.tipePo == 'CUSTOMER') {
+          // DISESUAIKAN: Menggunakan parameter 'qtyInput' & 'hargaJualPerSatuanInput' sesuai transaksi_dao.dart
           await transaksiDao.prosesPenjualan(
             barangId: item.barangId,
-            qtyPcs: item.qty,
-            hargaJual: item.hargaSatuan,
+            qtyInput: item.qty,
+            hargaJualPerSatuanInput: item.hargaSatuan,
             tipe: 'po_customer',
+            isSatuanBesar: false, // Ubah ke true jika satuan PO menggunakan satuan besar
           );
         }
       }

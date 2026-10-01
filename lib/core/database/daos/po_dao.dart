@@ -8,7 +8,7 @@ part 'po_dao.g.dart';
 class PoDao extends DatabaseAccessor<LocalDatabase> with _$PoDaoMixin {
   late final TransaksiDao transaksiDao;
 
-  // FIX: Perbaikan konstruktor DAO tanpa bentrok super parameter
+  // FIX: Konstruktor standar DatabaseAccessor Drift
   PoDao(LocalDatabase db) : super(db) {
     transaksiDao = TransaksiDao(db);
   }
@@ -40,7 +40,6 @@ class PoDao extends DatabaseAccessor<LocalDatabase> with _$PoDaoMixin {
           alamatRelasi: alamatRelasi,
           estimasiKirim: Value(estimasiKirim),
           statusBayar: Value(statusBayar),
-          // FIX: Bungkus grandTotal dengan Value()
           totalKeseluruhan: Value(grandTotal),
           statusPo: const Value('PENDING'),
         ),

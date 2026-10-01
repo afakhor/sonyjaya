@@ -23,8 +23,8 @@ dependencies:
   workmanager: ^0.9.0+3 #ganti untuk fluttter 3.29
   
   # Cache Cepat
-  isar_community: ^3.3.2
-  isar_community_flutter_libs: ^3.3.2
+  isar_community: ^3.2.0
+  isar_community_flutter_libs: ^3.2.0
 
   # Utils Toko Bangunan
   path_provider: ^2.1.2

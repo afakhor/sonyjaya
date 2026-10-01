@@ -2,7 +2,8 @@ import '../database/local_database.dart';
 
 class AutoPoService {
   static Future<List<Map<String, dynamic>>> generateDraftPo(LocalDatabase db) async {
-    final barangs = await (db.select(db.barang)..where((b) => b.stok.isSmallerOrEqual(b.safetyStock))).get();
+    // FIX: Gunakan isSmallerOrEqualValue
+    final barangs = await (db.select(db.barang)..where((b) => b.stok.isSmallerOrEqualValue(b.safetyStock))).get();
     
     final List<Map<String, dynamic>> draftList = [];
     for (final b in barangs) {

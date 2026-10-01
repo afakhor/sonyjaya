@@ -4,22 +4,22 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.10.0 <4.0.0"      # <- naik, 3.47.5 bawa Dart 3.10
+  sdk: ">=3.10.0 <4.0.0"      # <- 3.47.5 bawa Dart 3.10
   flutter: ">=3.47.0"
 
 dependencies:
   flutter:
     sdk: flutter
   # Otak multifungsi
-  drift: ^2.28.2             # <- tetap, sudah support Dart 3.10
+  drift: ^2.28.2
   sqlite3_flutter_libs: ^0.5.42
   drift_flutter: ^0.2.7
 
-  # Saraf super Reaktif
-  flutter_riverpod: ^2.6.1
-  riverpod_annotation: ^2.6.1
+  # Saraf super Reaktif - NAIK KE 3.x biar source_gen 4.x
+  flutter_riverpod: ^3.0.0
+  riverpod_annotation: ^3.0.0
 
-  # Otot Background - 3.47.5 pakai 0.10.10, sudah fix shim + ForegroundServiceConfig
+  # Otot Background - fix buat 3.47.5
   workmanager: ^0.10.10 #ganti untuk flutter 3.47.5
 
   # Cache Cepat
@@ -28,13 +28,13 @@ dependencies:
 
   # Utils Toko Bangunan
   path_provider: ^2.1.2
-  path: ^1.9.0     # <- turun, karena flutter_test 3.29 ngunci 1.9.0
+  path: ^1.9.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   drift_dev: ^2.28.2
   build_runner: ^2.7.0
-  riverpod_generator: ^2.6.5
+  riverpod_generator: ^3.0.0 # <- NAIK dari 2.6.5 ke 3.0.0 biar source_gen ^4.0.0
   isar_community_generator: ^3.3.2
   flutter_lints: ^4.0.0

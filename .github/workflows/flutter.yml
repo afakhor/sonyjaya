@@ -1,3 +1,4 @@
+# .github/workflows/flutter.yml
 name: Build APK Debug
 on:
   push:
@@ -15,7 +16,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Gradle 8.10.2 - no curl
+      - name: Setup Gradle 8.10.2 - tanpa curl, tanpa 9 byte
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.10.2
@@ -30,12 +31,13 @@ jobs:
       - name: Install deps
         run: sudo apt-get update && sudo apt-get install -y sqlite3 libsqlite3-dev clang cmake ninja-build pkg-config
 
-      - name: Ensure gradlew
+      - name: Fix pubspec biar cocok sama stable
         run: |
-          if [ ! -f android/gradlew ]; then
-            flutter create --platforms=android .
-          fi
-          chmod +x android/gradlew
+          sed -i 's/>=3.47.0/>=3.24.0/g' pubspec.yaml
+          sed -i 's/>=3.47.5/>=3.24.0/g' pubspec.yaml
+          sed -i 's/>=3.10.0/>=3.5.0/g' pubspec.yaml
+          sed -i 's/flutter_riverpod: \^3.0.0/flutter_riverpod: ^2.6.1/' pubspec.yaml
+          cat pubspec.yaml | grep -A3 environment
 
       - name: Build APK Debug
         run: |

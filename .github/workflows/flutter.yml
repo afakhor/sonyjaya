@@ -2,7 +2,7 @@ name: Build APK Debug
 on:
   push:
     branches: [ main, master ]
-  pull_request:
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,36 +22,48 @@ jobs:
           channel: 'master'
           cache: true
 
-      - name: Install Linux deps
+      - name: Install deps
         run: sudo apt-get update && sudo apt-get install -y sqlite3 libsqlite3-dev clang cmake ninja-build pkg-config
 
-      - name: Download Gradle from GitHub Releases
+      - name: Download Gradle 8.13.0 from GitHub Releases (bypass WAF)
         run: |
-          curl -L --retry 5 -o /tmp/gradle-8.10.2-bin.zip https://github.com/gradle/gradle/releases/download/v8.10.2/gradle-8.10.2-bin.zip
-          ls -lh /tmp/gradle-8.10.2-bin.zip
-          cat > android/gradle/wrapper/gradle-wrapper.properties << 'WRAP'
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          distributionUrl=file\:///tmp/gradle-8.10.2-bin.zip
-          WRAP
-          cat android/gradle/wrapper/gradle-wrapper.properties
-          ls -lh android/ | grep gradlew || echo "gradlew missing"
+          curl -L --retry 5 -o /tmp/gradle-8.13.0-bin.zip https://github.com/gradle/gradle/releases/download/v8.13.0/gradle-8.13.0-bin.zip
+          ls -lh /tmp/gradle-8.13.0-bin.zip
+          du -h /tmp/gradle-8.13.0-bin.zip
+          unzip -t /tmp/gradle-8.13.0-bin.zip | tail -3
+          # harus 133M dan OK
 
-      - name: Fix gradlew if missing
+      - name: Ensure gradlew exists
         run: |
           if [ ! -f android/gradlew ]; then
-            echo "gradlew hilang, regenerate android folder"
             flutter create --platforms=android .
           fi
           chmod +x android/gradlew
           ls -lh android/gradlew
 
+      - name: Force wrapper to use local zip - AFTER flutter create
+        run: |
+          cat > android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          distributionUrl=file\:///tmp/gradle-8.13.0-bin.zip
+          EOF
+          cat android/gradle/wrapper/gradle-wrapper.properties
+
       - name: Build APK Debug
         run: |
           flutter clean
           flutter pub get
+          # overwrite lagi setelah pub get, karena pub get kadang upgrade wrapper
+          cat > android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          distributionUrl=file\:///tmp/gradle-8.13.0-bin.zip
+          EOF
           flutter build apk --debug --android-skip-build-dependency-validation
 
       - name: Upload APK

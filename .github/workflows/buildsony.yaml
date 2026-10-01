@@ -30,20 +30,19 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev clang cmake ninja-build pkg-config
 
-      - name: Pre-download Gradle 8.14.0 (fix FileNotFoundException)
+      - name: Fix Gradle download - use local file://
         run: |
-          GRADLE_VERSION=8.14.0
-          mkdir -p ~/.gradle/wrapper/dists/gradle-${GRADLE_VERSION}-bin/
-          cd ~/.gradle/wrapper/dists/gradle-${GRADLE_VERSION}-bin/
-          # hapus cache rusak
-          rm -rf *
-          HASH=$(echo "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" | sha256sum | cut -c1-8)
-          mkdir -p $HASH
-          cd $HASH
-          echo "Downloading Gradle $GRADLE_VERSION with retry..."
-          curl -L --retry 5 --retry-delay 5 -o gradle-${GRADLE_VERSION}-bin.zip https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip
-          unzip -q gradle-${GRADLE_VERSION}-bin.zip || true
-          ls -lh
+          echo "Downloading Gradle 8.13.0 via curl..."
+          curl -L --retry 5 --retry-delay 3 -o /tmp/gradle-8.13.0-bin.zip https://services.gradle.org/distributions/gradle-8.13.0-bin.zip
+          ls -lh /tmp/gradle-8.13.0-bin.zip
+          cat > android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          distributionUrl=file\:///tmp/gradle-8.13.0-bin.zip
+          EOF
+          cat android/gradle/wrapper/gradle-wrapper.properties
 
       - name: Clean
         run: |

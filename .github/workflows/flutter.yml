@@ -32,7 +32,7 @@ jobs:
           flutter clean
           flutter pub get
           
-          # TAMBAHKAN INI: Generate ulang file .g.dart (Isar & Riverpod)
+          # Jalankan build_runner tanpa opsi --delete-conflicting-outputs
           flutter pub run build_runner build
 
           echo "=== BEFORE PATCH ==="
@@ -52,6 +52,7 @@ jobs:
           cat android/gradle/wrapper/gradle-wrapper.properties
 
           flutter build apk --debug --android-skip-build-dependency-validation
+
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

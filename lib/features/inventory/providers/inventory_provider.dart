@@ -10,9 +10,9 @@ LocalDatabase localDb(LocalDbRef ref) => LocalDatabase();
 @riverpod
 class Inventory extends _$Inventory {
   @override
-  Stream<List<Object>> build() { // <-- Ubah ke List<Object> agar lolos validasi generator
+  Stream<List<dynamic>> build() { // <-- Ubah ke List<dynamic> agar lolos dari validasi ketat generator v3
     final db = ref.watch(localDbProvider);
-    return db.barangDao.watchAllBarang(); // Drift otomatis mencocokkan tipe datanya
+    return db.barangDao.watchAllBarang();
   }
 
   Future<void> beli({required int barangId, required int qty, required double harga}) async {

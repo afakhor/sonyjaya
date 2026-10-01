@@ -22,26 +22,31 @@ jobs:
           channel: 'master'
           cache: true
 
-      - name: Install Gradle 8.13.0 dari GitHub Releases
+      - name: Install Gradle 8.13.0 via gh CLI - anti 9 byte
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd /tmp
           rm -f gradle.zip
-          curl -L -A "Mozilla/5.0" -o gradle.zip https://github.com/gradle/gradle/releases/download/v8.13.0/gradle-8.13.0-bin.zip
+          # pakai gh release download, bukan curl
+          gh release download v8.13.0 --repo gradle/gradle --pattern "*8.13.0-bin.zip" --clobber
+          ls -lh *.zip
+          mv gradle-8.13.0-bin.zip gradle.zip
           ls -lh gradle.zip
-          # harus 130M+, bukan 9
+          # harus 130M+, kalau masih 9 berarti fail
           unzip -q gradle.zip -d /opt
           /opt/gradle-8.13.0/bin/gradle --version
           echo "/opt/gradle-8.13.0/bin" >> $GITHUB_PATH
 
-      - name: Bypass gradlew wrapper - pakai gradle sistem
+      - name: Bypass gradlew wrapper
         run: |
           cat > android/gradlew << 'SH'
           #!/usr/bin/env sh
           exec /opt/gradle-8.13.0/bin/gradle "$@"
           SH
           chmod +x android/gradlew
-          cat android/gradlew
 
+      
       - name: Build APK
         run: |
           flutter --version

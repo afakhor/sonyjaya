@@ -27,12 +27,15 @@ jobs:
           channel: 'master'
           cache: true
 
-      - name: Build APK - patch AGP setelah pub get
+      - name: Build APK - patch AGP setelah pub       #- name: Build APK - patch AGP setelah pub get
         run: |
           flutter clean
           flutter pub get
           
-          # Jalankan build_runner tanpa opsi --delete-conflicting-outputs
+          # Jalankan build_runner pertama kali (untuk men-generate Drift & Isar models)
+          flutter pub run build_runner build || true
+          
+          # Jalankan build_runner kedua kali (sekarang BarangData sudah ada, Riverpod aman)
           flutter pub run build_runner build
 
           echo "=== BEFORE PATCH ==="
@@ -41,7 +44,7 @@ jobs:
 
           # Turunin AGP 8.11.x -> 8.7.3 biar cocok Gradle 8.10.2
           sed -i 's/version "8\.[0-9]*\.[0-9]*"/version "8.7.3"/g' android/settings.gradle.kts
-          # Fix gradle wrapper: 8.13.0 -> 8.10.2 (bukan 8.10.2.0)
+          # Fix gradle wrapper: 8.13.0 -> 8.10.2
           sed -i 's/8\.13\.0/8.10.2/g' android/gradle/wrapper/gradle-wrapper.properties
           sed -i 's/8\.13/8.10.2/g' android/gradle/wrapper/gradle-wrapper.properties
           sed -i 's/8\.10\.2\.0/8.10.2/g' android/gradle/wrapper/gradle-wrapper.properties
@@ -52,6 +55,7 @@ jobs:
           cat android/gradle/wrapper/gradle-wrapper.properties
 
           flutter build apk --debug --android-skip-build-dependency-validation
+
 
 
       - name: Upload APK

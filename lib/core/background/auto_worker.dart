@@ -13,11 +13,11 @@ void callbackDispatcher() {
     for (final b in barangs) {
       final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
       
-      // FIX: Gunakan isLargerThan untuk tanggal di Drift v2.31+
+      // FIX: Gunakan isBiggerThanValue untuk nilai DateTime mentah
       final logs = await (db.select(db.kartuStok)
         ..where((k) => k.barangId.equals(b.id))
         ..where((k) => k.tipe.equals('KELUAR'))
-        ..where((k) => k.tanggal.isLargerThan(thirtyDaysAgo))
+        ..where((k) => k.tanggal.isBiggerThanValue(thirtyDaysAgo))
       ).get();
       
       final totalKeluar = logs.fold<int>(0, (sum, item) => sum + item.qty.abs());

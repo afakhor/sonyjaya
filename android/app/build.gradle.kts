@@ -1,13 +1,14 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
+    id("dev.flutter.flutter-plugin-loader")
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
     namespace = "com.example.sonyjaya"
     compileSdk = 35
-    ndkVersion = "27.0.12077973"
+    ndkVersion = "28.2.13676358" // <- UPDATE INI
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

@@ -1,14 +1,14 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    id("dev.flutter.flutter-plugin-loader")
+    // HAPUS flutter-plugin-loader dari sini karena diatur di settings.gradle.kts oleh Gradle baru
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
     namespace = "com.example.sonyjaya"
     compileSdk = 35
-    ndkVersion = "28.2.13676358" // <- UPDATE INI
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

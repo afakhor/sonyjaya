@@ -9,7 +9,6 @@ void callbackDispatcher() {
     await IsarService.init();
     final db = LocalDatabase();
     
-    // 1. Sinkronisasi & Cek Reorder Cache
     final barangs = await db.select(db.barang).get();
     for (final b in barangs) {
       final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
@@ -31,10 +30,9 @@ void callbackDispatcher() {
       );
     }
 
-    // 2. Auto-Draft PO Background check
     final draftPo = await AutoPoService.generateDraftPo(db);
     if (draftPo.isNotEmpty) {
-      print('AUTO-PO: Terdeteksi ${draftPo.length} item di bawah safety stock. Draf siap dikirim.');
+      print('AUTO-PO: Terdeteksi ${draftPo.length} item di bawah safety stock.');
     }
 
     return Future.value(true);

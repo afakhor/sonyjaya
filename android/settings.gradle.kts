@@ -13,9 +13,11 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+
 plugins {
-    id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    id("com.android.application") version "8.13.1" apply false
+    // Hapus baris flutter-plugin-loader dari sini karena sudah ditangani oleh flutter-gradle-plugin secara otomatis
+    id("com.android.application") version "8.7.3" apply false
     id("org.jetbrains.kotlin.android") version "2.1.20" apply false
 }
+
 include(":app")

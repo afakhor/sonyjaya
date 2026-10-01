@@ -3,7 +3,6 @@ on:
   push:
     branches: [ main, master ]
   pull_request:
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,25 +25,31 @@ jobs:
       - name: Install Linux deps
         run: sudo apt-get update && sudo apt-get install -y sqlite3 libsqlite3-dev clang cmake ninja-build pkg-config
 
-      - name: Download Gradle from GitHub Releases - bypass services.gradle.org WAF
+      - name: Download Gradle from GitHub Releases
         run: |
-          echo "Downloading Gradle 8.10.2 from GitHub Releases..."
           curl -L --retry 5 -o /tmp/gradle-8.10.2-bin.zip https://github.com/gradle/gradle/releases/download/v8.10.2/gradle-8.10.2-bin.zip
           ls -lh /tmp/gradle-8.10.2-bin.zip
-          unzip -t /tmp/gradle-8.10.2-bin.zip | tail -5
-          cat > android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
+          cat > android/gradle/wrapper/gradle-wrapper.properties << 'WRAP'
           distributionBase=GRADLE_USER_HOME
           distributionPath=wrapper/dists
           zipStoreBase=GRADLE_USER_HOME
           zipStorePath=wrapper/dists
           distributionUrl=file\:///tmp/gradle-8.10.2-bin.zip
-          EOF
+          WRAP
           cat android/gradle/wrapper/gradle-wrapper.properties
+          ls -lh android/ | grep gradlew || echo "gradlew missing"
+
+      - name: Fix gradlew if missing
+        run: |
+          if [ ! -f android/gradlew ]; then
+            echo "gradlew hilang, regenerate android folder"
+            flutter create --platforms=android .
+          fi
+          chmod +x android/gradlew
+          ls -lh android/gradlew
 
       - name: Build APK Debug
         run: |
-          cd android && ./gradlew --version
-          cd ..
           flutter clean
           flutter pub get
           flutter build apk --debug --android-skip-build-dependency-validation

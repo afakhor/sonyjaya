@@ -1,0 +1,9 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        runs_before:
+          - riverpod_generator
+      isar_community_generator:
+        runs_before:
+          - riverpod_generator

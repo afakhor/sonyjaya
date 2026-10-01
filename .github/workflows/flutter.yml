@@ -20,28 +20,34 @@ jobs:
         with:
           gradle-version: 8.10.2
 
-      - name: Setup Flutter 3.47.5 master Dart 3.10
+      - name: Setup Flutter 3.47.5 master
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.47.5'
           channel: 'master'
           cache: true
 
-      - name: Patch AGP turun ke 8.7.3 biar cocok Gradle 8.10.2
-        run: |
-          flutter pub get
-          # Flutter 3.47.5 upgrade build.gradle.kts ke AGP 8.11 -> kita turunin lagi
-          sed -i 's/id("com.android.application") version ".*"/id("com.android.application") version "8.7.3" apply false/' android/settings.gradle.kts || true
-          sed -i 's/id("com.android.library") version ".*"/id("com.android.library") version "8.7.3" apply false/' android/settings.gradle.kts || true
-          sed -i 's/8\.11\./8.7.3/g' android/settings.gradle.kts || true
-          sed -i 's/8\.13/8.10.2/g' android/gradle/wrapper/gradle-wrapper.properties || true
-          cat android/settings.gradle.kts
-          cat android/gradle/wrapper/gradle-wrapper.properties
-
-      - name: Build APK
+      - name: Build APK - patch AGP setelah pub get
         run: |
           flutter clean
           flutter pub get
+          
+          echo "=== BEFORE PATCH ==="
+          cat android/settings.gradle.kts | grep -i "android"
+          cat android/gradle/wrapper/gradle-wrapper.properties
+
+          # Turunin AGP 8.11.x -> 8.7.3 biar cocok Gradle 8.10.2
+          sed -i 's/version "8\.[0-9]*\.[0-9]*"/version "8.7.3"/g' android/settings.gradle.kts
+          # Fix gradle wrapper: 8.13.0 -> 8.10.2 (bukan 8.10.2.0)
+          sed -i 's/8\.13\.0/8.10.2/g' android/gradle/wrapper/gradle-wrapper.properties
+          sed -i 's/8\.13/8.10.2/g' android/gradle/wrapper/gradle-wrapper.properties
+          sed -i 's/8\.10\.2\.0/8.10.2/g' android/gradle/wrapper/gradle-wrapper.properties
+          sed -i 's|downloads.gradle.org|services.gradle.org|g' android/gradle/wrapper/gradle-wrapper.properties
+
+          echo "=== AFTER PATCH ==="
+          cat android/settings.gradle.kts | grep -i "android"
+          cat android/gradle/wrapper/gradle-wrapper.properties
+
           flutter build apk --debug --android-skip-build-dependency-validation
 
       - name: Upload APK

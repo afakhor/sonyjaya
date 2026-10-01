@@ -3,6 +3,8 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'daos/barang_dao.dart';
 import 'daos/transaksi_dao.dart';
 import 'daos/laporan_dao.dart';
+import 'daos/po_dao.dart';
+import 'daos/satuan_dao.dart';
 
 part 'local_database.g.dart';
 
@@ -54,7 +56,6 @@ class KartuStok extends Table {
   DateTimeColumn get tanggal => dateTime().withDefault(currentDateAndTime)();
 }
 
-// TABEL BARU: Stock Opname iPOS 5
 class StockOpname extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get barangId => integer().customConstraint('NOT NULL REFERENCES barang(id) ON DELETE CASCADE')();
@@ -66,24 +67,63 @@ class StockOpname extends Table {
   DateTimeColumn get tanggal => dateTime().withDefault(currentDateAndTime)();
 }
 
-@DriftDatabase(tables: [Barang, Pembelian, Penjualan, KartuStok, StockOpname], daos: [BarangDao, TransaksiDao, LaporanDao])
+class Satuan extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get namaSatuan => text().unique()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+class PurchaseOrders extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get noPo => text().unique()();
+  TextColumn get tipePo => text()(); // 'CUSTOMER' atau 'VENDOR'
+  TextColumn get namaRelasi => text()();
+  TextColumn get kontakRelasi => text()();
+  TextColumn get alamatRelasi => text()();
+  DateTimeColumn get tanggalPo => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get estimasiKirim => dateTime().nullable()();
+  TextColumn get statusBayar => text().withDefault(const Constant('LUNAS'))();
+  RealColumn get totalKeseluruhan => real().withDefault(const Constant(0))();
+  TextColumn get statusPo => text().withDefault(const Constant('PENDING'))();
+}
+
+class PurchaseOrderItems extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get poId => integer().customConstraint('NOT NULL REFERENCES purchase_orders(id) ON DELETE CASCADE')();
+  IntColumn get barangId => integer().customConstraint('NOT NULL REFERENCES barang(id) ON DELETE CASCADE')();
+  IntColumn get qty => integer()();
+  TextColumn get satuan => text()();
+  RealColumn get hargaSatuan => real()();
+  RealColumn get subtotal => real()();
+  RealColumn get hppSaatTransaksi => real()();
+}
+
+@DriftDatabase(
+  tables: [Barang, Pembelian, Penjualan, KartuStok, StockOpname, Satuan, PurchaseOrders, PurchaseOrderItems], 
+  daos: [BarangDao, TransaksiDao, LaporanDao, PoDao, SatuanDao]
+)
 class LocalDatabase extends _$LocalDatabase {
-  LocalDatabase._internal() : super(driftDatabase(name: 'sony_jaya_hpp_v3'));
+  LocalDatabase._internal() : super(driftDatabase(name: 'sony_jaya_hpp_v5'));
   static final LocalDatabase _instance = LocalDatabase._internal();
   factory LocalDatabase() => _instance;
 
   LocalDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (Migrator m) async {
       await m.createAll();
+      await into(satuan).insert(SatuanCompanion.insert(namaSatuan: 'Pcs'));
+      await into(satuan).insert(SatuanCompanion.insert(namaSatuan: 'Set'));
+      await into(satuan).insert(SatuanCompanion.insert(namaSatuan: 'Sak'));
+      await into(satuan).insert(SatuanCompanion.insert(namaSatuan: 'Dus'));
+      await into(satuan).insert(SatuanCompanion.insert(namaSatuan: 'Batang'));
     },
     onUpgrade: (Migrator m, int from, int to) async {
-      if (from < 4) {
+      if (from < 5) {
         await m.createAll();
       }
     },

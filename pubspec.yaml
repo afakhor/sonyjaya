@@ -4,14 +4,14 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.6.0 <4.0.0"      # <- naik, karena source_gen 2.0.0 butuh Dart 3.6
-  flutter: ">=3.32.0"
+  sdk: ">=3.10.0 <4.0.0"      # <- naik, 3.47.5 bawa Dart 3.10
+  flutter: ">=3.47.0"
 
 dependencies:
   flutter:
     sdk: flutter
   # Otak multifungsi
-  drift: ^2.28.2             # <- naik biar sama-sama source_gen 2.x
+  drift: ^2.28.2             # <- tetap, sudah support Dart 3.10
   sqlite3_flutter_libs: ^0.5.42
   drift_flutter: ^0.2.7
 
@@ -19,27 +19,22 @@ dependencies:
   flutter_riverpod: ^2.6.1
   riverpod_annotation: ^2.6.1
 
-  # Otot Background
-  workmanager: 0.9.0+3 #ganti untuk fluttter 3.29 - KUNCI TANPA ^ biar gak lompat ke 0.9.3
+  # Otot Background - 3.47.5 pakai 0.10.10, sudah fix shim + ForegroundServiceConfig
+  workmanager: ^0.10.10 #ganti untuk flutter 3.47.5
 
   # Cache Cepat
-  isar_community: 3.2.0 # <- KUNCI 3.2.0 biar source_gen 2.x
-  isar_community_flutter_libs: 3.2.0 # <- sama
+  isar_community: ^3.3.2
+  isar_community_flutter_libs: ^3.3.2
 
   # Utils Toko Bangunan
   path_provider: ^2.1.2
   path: ^1.9.0     # <- turun, karena flutter_test 3.29 ngunci 1.9.0
 
-dependency_overrides:
-  workmanager_android: 0.9.0+3
-  workmanager_apple: 0.9.2
-  workmanager_platform_interface: 0.9.2
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  drift_dev: ^2.26.1 # <- balik ke 2.26.1 biar analyzer 6.9.0, sinkron sama isar 3.2.0
-  build_runner: ^2.4.13
-  riverpod_generator: 2.6.3 # <- turun dari 2.6.5 ke 2.6.3 biar analyzer ^6.9.0
-  isar_community_generator: 3.2.0 # <- KUNCI 3.2.0, jangan ^3.3.0-dev.1
-  flutter_lints: ^3.0.2
+  drift_dev: ^2.28.2
+  build_runner: ^2.7.0
+  riverpod_generator: ^2.6.5
+  isar_community_generator: ^3.3.2
+  flutter_lints: ^4.0.0

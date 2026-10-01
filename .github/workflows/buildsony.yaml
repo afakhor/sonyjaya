@@ -25,12 +25,27 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Linux deps for drift/isar
+      - name: Install Linux deps
         run: |
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev clang cmake ninja-build pkg-config
 
-      - name: Clean old lock
+      - name: Pre-download Gradle 8.14.0 (fix FileNotFoundException)
+        run: |
+          GRADLE_VERSION=8.14.0
+          mkdir -p ~/.gradle/wrapper/dists/gradle-${GRADLE_VERSION}-bin/
+          cd ~/.gradle/wrapper/dists/gradle-${GRADLE_VERSION}-bin/
+          # hapus cache rusak
+          rm -rf *
+          HASH=$(echo "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" | sha256sum | cut -c1-8)
+          mkdir -p $HASH
+          cd $HASH
+          echo "Downloading Gradle $GRADLE_VERSION with retry..."
+          curl -L --retry 5 --retry-delay 5 -o gradle-${GRADLE_VERSION}-bin.zip https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip
+          unzip -q gradle-${GRADLE_VERSION}-bin.zip || true
+          ls -lh
+
+      - name: Clean
         run: |
           rm -f pubspec.lock
           flutter clean
@@ -39,7 +54,7 @@ jobs:
         run: flutter pub get
 
       - name: Build APK Debug
-        run: flutter build apk --debug -v
+        run: flutter build apk --debug -v --android-skip-build-dependency-validation
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

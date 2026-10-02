@@ -1,8 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sony_jaya/core/database/local_database.dart';
-import 'package:sony_jaya/features/inventory/providers/inventory_provider.dart';
+import '../../../core/database/local_database.dart';
+import '../../inventory/providers/inventory_provider.dart';
 
-// Model Ringkasan Piutang per Pelanggan
 class PiutangSummary {
   final String namaPelanggan;
   final double totalPiutang;
@@ -17,11 +16,9 @@ class PiutangSummary {
   });
 }
 
-// Provider untuk mengambil daftar piutang aktif
 final piutangListProvider = FutureProvider.autoDispose<List<PiutangSummary>>((ref) async {
   final db = ref.watch(localDbProvider);
 
-  // Filter transaksi penjualan bertipe 'piutang'
   final listTransaksi = await (db.select(db.penjualan)
         ..where((t) => t.tipe.equals('piutang')))
       .get();

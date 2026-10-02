@@ -15,7 +15,7 @@ class KasirScreen extends ConsumerWidget {
     double totalBelanja = cartItems.fold(0, (sum, item) => sum + item.subtotal);
 
     return Scaffold(
-      app: AppBar(
+      appbar: AppBar(
         title: const Text('Sony Jaya - Kasir Pintar'),
         actions: [
           IconButton(

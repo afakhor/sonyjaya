@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:drift/drift.dart' as drift;
-import '../../../core/database/local_database.dart';
+import 'providers/log_provider.dart'; 
+// (Sesuaikan path import log_provider.dart jika berbeda)
 
 final selectedItemLogProvider = StateProvider<int?>((ref) => null);
-final databaseProvider = Provider<LocalDatabase>((ref) => LocalDatabase());
 
 class LogScreen extends ConsumerWidget {
   const LogScreen({super.key});
@@ -19,13 +18,21 @@ class LogScreen extends ConsumerWidget {
           bottom: const TabBar(
             isScrollable: true,
             tabs: [
-              Tab(text: 'Stok'), Tab(text: 'Jual'), Tab(text: 'Beli'), Tab(text: 'Opname'), Tab(text: 'PO')
+              Tab(text: 'Stok'), 
+              Tab(text: 'Jual'), 
+              Tab(text: 'Beli'), 
+              Tab(text: 'Opname'), 
+              Tab(text: 'PO')
             ],
           ),
         ),
         body: const TabBarView(
           children: [
-            LogStokTab(), LogPenjualanTab(), LogPembelianTab(), LogOpnameTab(), LogPoTab(),
+            LogStokTab(), 
+            LogPenjualanTab(), 
+            LogPembelianTab(), 
+            LogOpnameTab(), 
+            LogPoTab(),
           ],
         ),
       ),
@@ -33,21 +40,26 @@ class LogScreen extends ConsumerWidget {
   }
 }
 
+// 1. Tab Log Stok
 class LogStokTab extends ConsumerWidget {
   const LogStokTab({super.key});
+  
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final db = ref.watch(databaseProvider);
-    return StreamBuilder<List<KartuStokData>>(
-      // Fixed syntax OrderingTerm
-      stream: (db.select(db.kartuStok)..orderBy([(k) => drift.OrderingTerm(expression: k.tanggal, mode: drift.OrderingMode.desc)])).watch(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+    final stokAsync = ref.watch(logStokProvider);
+
+    return stokAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text('Error: $err')),
+      data: (list) {
+        if (list.isEmpty) return const Center(child: Text('Belum ada catatan stok.'));
         return ListView.builder(
-          itemCount: snapshot.data!.length,
+          itemCount: list.length,
           itemBuilder: (context, index) {
-            final item = snapshot.data![index];
-            return ListTile(title: Text('${item.tipe} (${item.qty})'));
+            final item = list[index];
+            return ListTile(
+              title: Text('${item.tipe} (${item.qty})'),
+            );
           },
         );
       },
@@ -55,22 +67,18 @@ class LogStokTab extends ConsumerWidget {
   }
 }
 
-// (Terapkan perbaikan syntax drift.OrderingTerm(expression: x, mode: drift.OrderingMode.desc) 
-// secara identik pada LogPenjualanTab, LogPembelianTab, LogOpnameTab, LogPoTab)
-
-
 // 2. Tab Log Penjualan
 class LogPenjualanTab extends ConsumerWidget {
   const LogPenjualanTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final db = ref.watch(databaseProvider);
-    return StreamBuilder<List<PenjualanData>>(
-      stream: (db.select(db.penjualan)..orderBy([(p) => drift.OrderingTerm.desc(p.tanggal)])).watch(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-        final list = snapshot.data!;
+    final jualAsync = ref.watch(logPenjualanProvider);
+
+    return jualAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text('Error: $err')),
+      data: (list) {
         if (list.isEmpty) return const Center(child: Text('Belum ada catatan penjualan.'));
         return ListView.builder(
           itemCount: list.length,
@@ -94,12 +102,12 @@ class LogPembelianTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final db = ref.watch(databaseProvider);
-    return StreamBuilder<List<PembelianData>>(
-      stream: (db.select(db.pembelian)..orderBy([(p) => drift.OrderingTerm.desc(p.tanggal)])).watch(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-        final list = snapshot.data!;
+    final beliAsync = ref.watch(logPembelianProvider);
+
+    return beliAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text('Error: $err')),
+      data: (list) {
         if (list.isEmpty) return const Center(child: Text('Belum ada catatan pembelian.'));
         return ListView.builder(
           itemCount: list.length,
@@ -123,12 +131,12 @@ class LogOpnameTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final db = ref.watch(databaseProvider);
-    return StreamBuilder<List<StockOpnameData>>(
-      stream: (db.select(db.stockOpname)..orderBy([(s) => drift.OrderingTerm.desc(s.tanggal)])).watch(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-        final list = snapshot.data!;
+    final opnameAsync = ref.watch(logOpnameProvider);
+
+    return opnameAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text('Error: $err')),
+      data: (list) {
         if (list.isEmpty) return const Center(child: Text('Belum ada data Stock Opname.'));
         return ListView.builder(
           itemCount: list.length,
@@ -146,18 +154,18 @@ class LogOpnameTab extends ConsumerWidget {
   }
 }
 
-// 5. Tab Log Purchase Order (Otomatis Selesai)
+// 5. Tab Log Purchase Order
 class LogPoTab extends ConsumerWidget {
   const LogPoTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final db = ref.watch(databaseProvider);
-    return StreamBuilder<List<PurchaseOrderData>>(
-      stream: (db.select(db.purchaseOrders)..orderBy([(p) => drift.OrderingTerm.desc(p.tanggalBuat)])).watch(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-        final list = snapshot.data!;
+    final poAsync = ref.watch(logPoProvider);
+
+    return poAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text('Error: $err')),
+      data: (list) {
         if (list.isEmpty) return const Center(child: Text('Belum ada data Purchase Order (PO).'));
         return ListView.builder(
           itemCount: list.length,

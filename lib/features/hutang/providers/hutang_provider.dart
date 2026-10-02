@@ -26,7 +26,7 @@ final hutangListProvider = FutureProvider.autoDispose<List<HutangSummary>>((ref)
         ..where((p) => p.tipePo.equals('VENDOR') & p.statusBayar.equals('BELUM_LUNAS')))
       .get();
 
-  final Map<String, List<PurchaseOrdersData>> grouped = {};
+  final Map<String, List<PurchaseOrders>> grouped = {};
   for (var po in listPo) {
     final String nama = po.namaRelasi.isNotEmpty ? po.namaRelasi : 'Supplier Umum';
     if (!grouped.containsKey(nama)) {

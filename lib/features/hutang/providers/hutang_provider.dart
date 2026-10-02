@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart';
 import '../../../core/database/local_database.dart';
 import '../../inventory/providers/inventory_provider.dart';
 
@@ -19,8 +20,10 @@ class HutangSummary {
 final hutangListProvider = FutureProvider.autoDispose<List<HutangSummary>>((ref) async {
   final db = ref.watch(localDbProvider);
 
+  // Chaining ..where() secara terpisah otomatis berfungsi sebagai logika AND di Drift
   final listPo = await (db.select(db.purchaseOrders)
-        ..where((p) => p.tipePo.equals('VENDOR').and(p.statusBayar.equals('BELUM_LUNAS'))))
+        ..where((p) => p.tipePo.equals('VENDOR'))
+        ..where((p) => p.statusBayar.equals('BELUM_LUNAS')))
       .get();
 
   final Map<String, List<PurchaseOrder>> grouped = {};

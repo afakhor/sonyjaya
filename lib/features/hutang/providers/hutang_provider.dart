@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/database/local_database.dart';
-import '../inventory/providers/inventory_provider.dart';
+import '../../../../core/database/local_database.dart';
+import '../../inventory/providers/inventory_provider.dart';
 
 // Model Ringkasan Hutang ke Supplier
 class HutangSummary {

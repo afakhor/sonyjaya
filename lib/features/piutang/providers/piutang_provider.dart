@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/database/local_database.dart';
-import '../../inventory/providers/inventory_provider.dart';
+import 'package:sony_jaya/core/database/local_database.dart';
+import 'package:sony_jaya/features/inventory/providers/inventory_provider.dart';
 
-// Model Ringkasan Piutang per Pelanggan (Menggunakan PenjualanData buatan Drift)
+// Model Ringkasan Piutang per Pelanggan
 class PiutangSummary {
   final String namaPelanggan;
   final double totalPiutang;
@@ -21,12 +21,11 @@ class PiutangSummary {
 final piutangListProvider = FutureProvider.autoDispose<List<PiutangSummary>>((ref) async {
   final db = ref.watch(localDbProvider);
 
-  // Mengakses tabel db.penjualan dan memfilter transaksi bertipe 'piutang'
+  // Filter transaksi penjualan bertipe 'piutang'
   final listTransaksi = await (db.select(db.penjualan)
         ..where((t) => t.tipe.equals('piutang')))
       .get();
 
-  // Kelompokkan berdasarkan pelanggan
   final Map<String, List<PenjualanData>> grouped = {};
   for (var trx in listTransaksi) {
     const String nama = 'Pelanggan Umum';
@@ -36,12 +35,11 @@ final piutangListProvider = FutureProvider.autoDispose<List<PiutangSummary>>((re
     grouped[nama]!.add(trx);
   }
 
-  // Akumulasi total piutang berdasarkan perkalian qtyPcs * hargaJualPerSatuanSnapshot
   final List<PiutangSummary> result = [];
   grouped.forEach((nama, trxs) {
     final double total = trxs.fold<double>(
       0.0,
-      (sum, t) => sum + (t.qtyPcs * t.hargaJualPerSatuanSnapshot),
+      (sum, t) => sum + (t.qtyPcs * t.hargaJualPerPcs),
     );
     result.add(PiutangSummary(
       namaPelanggan: nama,

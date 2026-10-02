@@ -1,13 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/database/local_database.dart';
-import '../../inventory/providers/inventory_provider.dart';
+import 'package:sony_jaya/core/database/local_database.dart';
+import 'package:sony_jaya/features/inventory/providers/inventory_provider.dart';
 
 // Model Ringkasan Hutang ke Supplier
 class HutangSummary {
   final String namaSupplier;
   final double totalHutang;
   final int jumlahPo;
-  final List<PurchaseOrderData> daftarPo;
+  final List<PurchaseOrdersData> daftarPo;
 
   HutangSummary({
     required this.namaSupplier,
@@ -17,18 +17,16 @@ class HutangSummary {
   });
 }
 
-// Provider untuk mengambil daftar PO / Pembelian dari supplier yang belum lunas
+// Provider untuk mengambil daftar PO dari supplier yang belum lunas
 final hutangListProvider = FutureProvider.autoDispose<List<HutangSummary>>((ref) async {
   final db = ref.watch(localDbProvider);
 
-  // Ambil PO tipe VENDOR yang status PO-nya BELUM_LUNAS
-  // Menggunakan statusPo dan tanda kurung eksplisit untuk presedensi operator Drift &
+  // Ambil PO tipe VENDOR dengan status bayar BELUM_LUNAS
   final listPo = await (db.select(db.purchaseOrders)
-        ..where((p) => (p.tipePo.equals('VENDOR')) & (p.statusPo.equals('BELUM_LUNAS'))))
+        ..where((p) => p.tipePo.equals('VENDOR') & p.statusBayar.equals('BELUM_LUNAS')))
       .get();
 
-  // Kelompokkan berdasarkan nama relasi / supplier
-  final Map<String, List<PurchaseOrderData>> grouped = {};
+  final Map<String, List<PurchaseOrdersData>> grouped = {};
   for (var po in listPo) {
     final String nama = po.namaRelasi.isNotEmpty ? po.namaRelasi : 'Supplier Umum';
     if (!grouped.containsKey(nama)) {
@@ -39,7 +37,6 @@ final hutangListProvider = FutureProvider.autoDispose<List<HutangSummary>>((ref)
 
   final List<HutangSummary> result = [];
   grouped.forEach((nama, pos) {
-    // Presisi kalkulasi bertipe double dengan .fold<double>(0.0, ...)
     final double total = pos.fold<double>(
       0.0,
       (sum, p) => sum + p.totalKeseluruhan,

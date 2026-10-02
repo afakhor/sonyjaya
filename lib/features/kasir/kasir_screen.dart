@@ -5,14 +5,17 @@ import '../inventory/providers/inventory_provider.dart';
 import 'providers/kasir_provider.dart';
 
 class KasirScreen extends ConsumerWidget {
-  const KasirScreen({Key? key}) : super(key: key);
+  const KasirScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cartItems = ref.watch(cartProvider);
     final inventoryAsync = ref.watch(inventoryStreamProvider);
 
-    double totalBelanja = cartItems.fold(0, (sum, item) => sum + item.subtotal);
+    final double totalBelanja = cartItems.fold<double>(
+      0.0,
+      (sum, item) => sum + item.subtotal,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -26,7 +29,7 @@ class KasirScreen extends ConsumerWidget {
       ),
       body: Row(
         children: [
-          // Sisi Kiri: Daftar Barang / Katalog Toko Perkakas
+          // Sisi Kiri: Katalog Toko
           Expanded(
             flex: 3,
             child: inventoryAsync.when(
@@ -63,7 +66,12 @@ class KasirScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(barang.nama, style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              Text(
+                                barang.nama,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                               const SizedBox(height: 4),
                               Text('Stok: ${barang.stok} | Rp ${barang.hargaEcer}'),
                             ],
@@ -79,7 +87,7 @@ class KasirScreen extends ConsumerWidget {
             ),
           ),
           const VerticalDivider(width: 1),
-          // Sisi Kanan: Keranjang & Checkout
+          // Sisi Kanan: Keranjang
           Expanded(
             flex: 2,
             child: Column(
@@ -113,31 +121,40 @@ class KasirScreen extends ConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Total:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                          Text('Rp $totalBelanja', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.greenAccent)),
+                          Text(
+                            'Rp ${totalBelanja.toStringAsFixed(0)}',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 10),
                       SizedBox(
                         width: double.infinity,
-                        child: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          foregroundColor: Colors.black,
-                        ).wrap(
-                          ElevatedButton(
-                            onPressed: cartItems.isEmpty ? null : () async {
-                              try {
-                                await ref.read(cartProvider.notifier).checkout();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Transaksi Berhasil Disimpan & Cache Disinkronkan!')),
-                                );
-                              } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Gagal Checkout: $e')),
-                                );
-                              }
-                            },
-                            child: const Text('PROSES PEMBAYARAN'),
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
+                          onPressed: cartItems.isEmpty
+                              ? null
+                              : () async {
+                                  try {
+                                    await ref.read(cartProvider.notifier).checkout();
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Transaksi Berhasil Disimpan & Cache Disinkronkan!')),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Gagal Checkout: $e')),
+                                      );
+                                    }
+                                  }
+                                },
+                          child: const Text('PROSES PEMBAYARAN', style: TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ),
                     ],
@@ -147,18 +164,6 @@ class KasirScreen extends ConsumerWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-extension on ButtonStyle {
-  Widget wrap(Widget child) {
-    return Builder(
-      builder: (context) => ElevatedButton(
-        style: this,
-        onPressed: (child as ElevatedButton).onPressed,
-        child: child.child,
       ),
     );
   }

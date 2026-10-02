@@ -28,7 +28,8 @@ class PiutangScreen extends ConsumerWidget {
         ),
         data: (groups) {
           if (groups.isEmpty) {
-            return const Center(child: Column(
+            return const Center(
+              child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
@@ -113,7 +114,8 @@ class PiutangScreen extends ConsumerWidget {
                           ),
                         ),
                         children: group.daftarTransaksi.map((trx) {
-                          final subtotal = trx.qtyPcs * trx.hargaJualPerSatuanSnapshot;
+                          // Menggunakan trx.hargaJualPerPcs dari tabel Penjualan
+                          final subtotal = trx.qtyPcs * trx.hargaJualPerPcs;
                           final tgl = trx.tanggal.toLocal().toString().split('.')[0];
                           return Container(
                             color: Colors.grey.shade50,

@@ -21,11 +21,13 @@ import 'features/perkakas/perkakas_screen.dart';   // Sesuaikan jika nama file b
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inisialisasi Database Lokal & Cache
-  await IsarService.init();
-
-  // Inisialisasi Workmanager
-  await AutoWorker.init();
+  // Inisialisasi Service Global
+  try {
+    await IsarService.init();
+    await AutoWorker.init();
+  } catch (e) {
+    debugPrint('Error saat inisialisasi service: $e');
+  }
 
   runApp(
     const ProviderScope(
@@ -35,7 +37,7 @@ void main() async {
 }
 
 class SonyJayaApp extends StatelessWidget {
-  const SonyJayaApp({Key? key}) : super(key: key);
+  const SonyJayaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +57,7 @@ class SonyJayaApp extends StatelessWidget {
 }
 
 class MainNavigationShell extends StatefulWidget {
-  const MainNavigationShell({Key? key}) : super(key: key);
+  const MainNavigationShell({super.key});
 
   @override
   State<MainNavigationShell> createState() => _MainNavigationShellState();
@@ -64,30 +66,28 @@ class MainNavigationShell extends StatefulWidget {
 class _MainNavigationShellState extends State<MainNavigationShell> {
   int _currentIndex = 0;
 
-  final List<Widget> _mainScreens = [
-    const KasirScreen(),
-    const InventoryScreen(),
-    const TransaksiScreen(),
-    const AutoPoScreen(),
+  // Daftar screen utama - Tidak memanggil method/provider internal features
+  final List<Widget> _screens = const [
+    KasirScreen(),
+    InventoryScreen(),
+    TransaksiScreen(),
+    AutoPoScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_getAppBarTitle(_currentIndex)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.menu_book),
-            onPressed: () => _showFullMenuModal(context),
-            tooltip: 'Menu Fitur Lengkap',
-          )
-        ],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
       ),
-      body: _mainScreens[_currentIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
-        onDestinationSelected: (index) => setState(() => _currentIndex = index),
+        onDestinationSelected: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.point_of_sale),
@@ -106,92 +106,6 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             label: 'Auto PO',
           ),
         ],
-      ),
-    );
-  }
-
-  String _getAppBarTitle(int index) {
-    switch (index) {
-      case 0:
-        return 'Sony Jaya - Kasir';
-      case 1:
-        return 'Manajemen Inventory';
-      case 2:
-        return 'Riwayat Transaksi';
-      case 3:
-        return 'Auto Purchase Order';
-      default:
-        return 'Sony Jaya iPOS';
-    }
-  }
-
-  void _showFullMenuModal(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
-        builder: (_, scrollController) => ListView(
-          controller: scrollController,
-          padding: const EdgeInsets.all(16),
-          children: [
-            const Text(
-              'Semua Modul & Fitur',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.money_off, color: Colors.redAccent),
-              title: const Text('Hutang'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const HutangScreen()));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.attach_money, color: Colors.greenAccent),
-              title: const Text('Piutang'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const PiutangScreen()));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.calculate, color: Colors.amber),
-              title: const Text('Kalkulator'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const KalkulatorScreen()));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.backup, color: Colors.blueAccent),
-              title: const Text('Backup & Restore'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const BackupScreen()));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.history, color: Colors.orangeAccent),
-              title: const Text('Log Sistem'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const LogScreen()));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.build, color: Colors.purpleAccent),
-              title: const Text('Perkakas (Tools)'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const PerkakasScreen()));
-              },
-            ),
-          ],
-        ),
       ),
     );
   }

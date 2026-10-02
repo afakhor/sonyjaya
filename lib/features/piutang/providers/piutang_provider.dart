@@ -21,9 +21,9 @@ class PiutangSummary {
 final piutangListProvider = FutureProvider.autoDispose<List<PiutangSummary>>((ref) async {
   final db = ref.watch(localDbProvider);
 
-  // Ambil transaksi yang tipenya 'piutang' atau belum lunas (contoh implementasi query)
+  // Ambil transaksi yang tipenya 'piutang' atau status bayarnya belum lunas
   final listTransaksi = await (db.select(db.transaksi)
-        ..where((t) => t.tipe.equals('piutang') & t.statusBayar.equals('BELUM_LUNAS')))
+        ..where((t) => t.statusBayar.equals('BELUM_LUNAS')))
       .get();
 
   // Kelompokkan berdasarkan nama relasi / pelanggan

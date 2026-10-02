@@ -7,18 +7,25 @@ class CartItem {
   int qty;
   double hargaJual;
 
-  CartItem({required this.barang, this.qty = 1, required this.hargaJual});
+  CartItem({
+    required this.barang,
+    this.qty = 1,
+    required this.hargaJual,
+  });
 
   double get subtotal => qty * hargaJual;
 }
 
-class CartNotifier extends StateNotifier<List<CartItem>> {
-  final Ref _ref;
-  CartNotifier(this._ref) : super([]);
+class CartNotifier extends Notifier<List<CartItem>> {
+  @override
+  List<CartItem> build() {
+    return [];
+  }
 
   void tambahItem(BarangData barang, {int qty = 1, double? customHarga}) {
     final harga = customHarga ?? barang.hargaEcer;
 
+    // MARGIN GUARD: Cegah jual di bawah HPP
     if (harga < barang.hppAverage) {
       throw Exception('MARGIN GUARD: Harga jual di bawah HPP (${barang.hppAverage})!');
     }
@@ -55,8 +62,8 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
   Future<void> checkout() async {
     if (state.isEmpty) return;
 
-    final db = _ref.read(localDbProvider); // Pastikan localDbProvider sudah ada di local_database.dart
-    final inventoryController = _ref.read(inventoryControllerProvider);
+    final db = ref.read(localDbProvider);
+    final inventoryController = ref.read(inventoryControllerProvider);
 
     for (var cartItem in state) {
       await db.transaksiDao.prosesPenjualan(
@@ -73,6 +80,4 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
   }
 }
 
-final cartProvider = StateNotifierProvider<CartNotifier, List<CartItem>>((ref) {
-  return CartNotifier(ref);
-});
+final cartProvider = NotifierProvider<CartNotifier, List<CartItem>>(CartNotifier.new);

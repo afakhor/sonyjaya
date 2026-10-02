@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart' as drift;
 import 'providers/piutang_provider.dart';
 import '../inventory/providers/inventory_provider.dart';
+import '../../../core/database/local_database.dart'; // Import DB untuk Companion
 
 class PiutangScreen extends ConsumerWidget {
   const PiutangScreen({super.key});
@@ -13,86 +15,24 @@ class PiutangScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Buku Bon & Piutang Pelanggan'),
+        title: const Text('Buku Piutang Pelanggan'),
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
       ),
       body: piutangAsync.when(
         data: (summaries) {
-          if (summaries.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
-                  SizedBox(height: 12),
-                  Text('Aman! Tidak ada piutang atau bon aktif saat ini.', style: TextStyle(color: Colors.grey, fontSize: 16)),
-                ],
-              ),
-            );
-          }
-
-          double grandTotalPiutang = summaries.fold(0, (sum, item) => sum + item.totalPiutang);
-
-          return Column(
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                color: Colors.amber.shade100,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Total Piutang Luar:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text('Rp ${grandTotalPiutang.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.redAccent)),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(8),
-                  itemCount: summaries.length,
-                  itemBuilder: (context, index) {
-                    final summary = summaries[index];
-                    return Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.red.shade100,
-                          child: const Icon(Icons.person, color: Colors.red),
-                        ),
-                        title: Text(
-                          summary.namaPelanggan,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text('${summary.jumlahNota} Nota Belum Lunas'),
-                        ),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              'Rp ${summary.totalPiutang.toStringAsFixed(0)}',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text('Ketuk untuk Detail', style: TextStyle(fontSize: 11, color: Colors.blue)),
-                          ],
-                        ),
-                        onTap: () {
-                          _showDetailPelangganBon(context, ref, summary);
-                        },
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+          if (summaries.isEmpty) return const Center(child: Text('Aman! Tidak ada piutang.'));
+          return ListView.builder(
+            itemCount: summaries.length,
+            itemBuilder: (context, index) {
+              final summary = summaries[index];
+              return ListTile(
+                title: Text(summary.namaPelanggan),
+                subtitle: Text('${summary.jumlahNota} Nota'),
+                trailing: Text('Rp ${summary.totalPiutang.toStringAsFixed(0)}', style: const TextStyle(color: Colors.red)),
+                onTap: () => _showDetail(context, ref, summary),
+              );
+            },
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -101,74 +41,29 @@ class PiutangScreen extends ConsumerWidget {
     );
   }
 
-  void _showDetailPelangganBon(BuildContext context, WidgetRef ref, PiutangSummary summary) {
+  void _showDetail(BuildContext context, WidgetRef ref, PiutangSummary summary) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        minChildSize: 0.4,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (context, scrollController) => Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Rincian Bon: ${summary.namaPelanggan}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const Divider(),
-              const SizedBox(height: 8),
-              Expanded(
-                child: ListView.builder(
-                  controller: scrollController,
-                  itemCount: summary.daftarTransaksi.length,
-                  itemBuilder: (context, index) {
-                    final trx = summary.daftarTransaksi[index];
-                    return ListTile(
-                      dense: true,
-                      title: Text('Nota #${trx.id} - ${trx.tanggal}'),
-                      trailing: Text('Rp ${trx.totalHarga.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    );
-                  },
-                ),
-              ),
-              const Divider(),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Total Tagihan:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text('Rp ${summary.totalPiutang.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade700,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 48),
-                ),
-                onPressed: () async {
-                  final db = ref.read(localDbProvider);
-                  for (var trx in summary.daftarTransaksi) {
-                    await (db.update(db.transaksi)..where((t) => t.id.equals(trx.id))).write(
-                      TransaksiCompanion(statusBayar: Value('LUNAS')),
-                    );
-                  }
-                  ref.invalidate(piutangListProvider);
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Piutang ${summary.namaPelanggan} berhasil dilunaskan!')),
-                    );
-                  }
-                },
-                child: const Text('LUNASKAN SEMUA BON INI', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Tagihan: ${summary.namaPelanggan}', style: const TextStyle(fontSize: 18)),
+            ElevatedButton(
+              onPressed: () async {
+                final db = ref.read(localDbProvider);
+                for (var trx in summary.daftarTransaksi) {
+                  await (db.update(db.transaksi)..where((t) => t.id.equals(trx.id))).write(
+                    TransaksiCompanion(statusBayar: drift.Value('LUNAS')), // Fixed Drift Value
+                  );
+                }
+                ref.invalidate(piutangListProvider);
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: const Text('LUNASKAN'),
+            ),
+          ],
         ),
       ),
     );

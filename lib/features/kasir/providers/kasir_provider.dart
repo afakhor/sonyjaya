@@ -55,7 +55,7 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
   Future<void> checkout() async {
     if (state.isEmpty) return;
 
-    final db = _ref.read(localDbProvider);
+    final db = _ref.read(localDbProvider); // Pastikan localDbProvider sudah ada di local_database.dart
     final inventoryController = _ref.read(inventoryControllerProvider);
 
     for (var cartItem in state) {

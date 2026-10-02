@@ -1,4 +1,3 @@
-lib/features/inventory/inventory_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'providers/inventory_provider.dart'; // Sesuaikan path import provider Anda

@@ -1,47 +1,62 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'providers/auto_po_provider.dart';
+import '../../core/cache/isar_service.dart';
+import '../../core/cache/models/fast_stock_cache.dart';
 
-class AutoPoNotificationWidget extends ConsumerWidget {
-  const AutoPoNotificationWidget({super.key});
+class AutoPoScreen extends StatelessWidget {
+  const AutoPoScreen({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    const primaryColor = Color(0xFF1E293B); // Contoh warna tema gelap/modern
-    final draftPoAsync = ref.watch(autoPoDraftProvider);
-
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Rekomendasi Auto-PO Stok'),
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
+      app: AppBar(
+        title: const Text('Auto-PO & Fast Moving Dashboard'),
       ),
-      body: draftPoAsync.when(
-        data: (items) {
-          if (items.isEmpty) {
-            const emptyMessage = 'Stok aman! Tidak ada barang di bawah safety stock.';
-            return const Center(child: Text(emptyMessage));
-          }
-          return ListView.builder(
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                child: ListTile(
-                  title: Text(item['nama'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('Sisa Stok: ${item['stokSisa']} | Safety Stock: ${item['safetyStock']}'),
-                  trailing: Chip(
-                    label: Text('Order: ${item['saranQtyOrder']} Pcs'),
-                    backgroundColor: Colors.orange.shade100,
-                  ),
-                ),
-              );
-            },
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Terjadi kesalahan: $err')),
+      body: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(12.0),
+            child: Text(
+              'Daftar Barang Perlu Reorder (Isar Real-time Cache)',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+          ),
+          Expanded(
+            child: StreamBuilder<List<FastStockCache>>(
+              stream: IsarService.watchPerluReorder(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final listReorder = snapshot.data!;
+                if (listReorder.isEmpty) {
+                  return const Center(child: Text('Semua stok aman, tidak ada PO otomatis.'));
+                }
+
+                return ListView.builder(
+                  itemCount: listReorder.length,
+                  itemBuilder: (context, index) {
+                    final item = listReorder[index];
+                    return ListTile(
+                      leading: const Icon(Icons.warning, color: Colors.amber),
+                      title: Text(item.nama),
+                      subtitle: Text('Stok Sisa: ${item.stok} | Safety: ${item.safetyStock}'),
+                      trailing: ElevatedButton(
+                        onPressed: () {
+                          // Aksi Buat PO Otomatis ke Supplier
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('PO Otomatis dibuat untuk ${item.nama}!')),
+                          );
+                        },
+                        child: const Text('Generate PO'),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

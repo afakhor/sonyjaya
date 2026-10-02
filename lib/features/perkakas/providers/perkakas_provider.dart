@@ -7,27 +7,42 @@ class PerkakasFilterState {
   final String searchQuery;
   final String selectedCategory;
 
-  PerkakasFilterState({this.searchQuery = '', this.selectedCategory = 'SEMUA'});
+  PerkakasFilterState({
+    this.searchQuery = '',
+    this.selectedCategory = 'SEMUA',
+  });
 }
 
-class PerkakasFilterNotifier extends StateNotifier<PerkakasFilterState> {
-  PerkakasFilterNotifier() : super(PerkakasFilterState());
+// Notifier berbasis Riverpod 2.x (Notifier<T>)
+class PerkakasFilterNotifier extends Notifier<PerkakasFilterState> {
+  @override
+  PerkakasFilterState build() {
+    return PerkakasFilterState();
+  }
 
   void setSearchQuery(String query) {
-    state = PerkakasFilterState(searchQuery: query, selectedCategory: state.selectedCategory);
+    state = PerkakasFilterState(
+      searchQuery: query,
+      selectedCategory: state.selectedCategory,
+    );
   }
 
   void setCategory(String category) {
-    state = PerkakasFilterState(searchQuery: state.searchQuery, selectedCategory: category);
+    state = PerkakasFilterState(
+      searchQuery: state.searchQuery,
+      selectedCategory: category,
+    );
   }
 }
 
-final perkakasFilterProvider = StateNotifierProvider<PerkakasFilterNotifier, PerkakasFilterState>((ref) {
-  return PerkakasFilterNotifier();
-});
+final perkakasFilterProvider =
+    NotifierProvider<PerkakasFilterNotifier, PerkakasFilterState>(
+  PerkakasFilterNotifier.new,
+);
 
 // Provider utama yang memfilter daftar barang khusus perkakas
-final filteredPerkakasProvider = Provider.autoDispose<AsyncValue<List<BarangData>>>((ref) {
+final filteredPerkakasProvider =
+    Provider.autoDispose<AsyncValue<List<BarangData>>>((ref) {
   final inventoryAsync = ref.watch(inventoryStreamProvider);
   final filter = ref.watch(perkakasFilterProvider);
 
@@ -36,11 +51,13 @@ final filteredPerkakasProvider = Provider.autoDispose<AsyncValue<List<BarangData
       final nama = b.nama.toLowerCase();
       final sku = (b.sku ?? '').toLowerCase();
 
-      final matchesSearch = nama.contains(filter.searchQuery.toLowerCase()) || 
-                            sku.contains(filter.searchQuery.toLowerCase());
+      final matchesSearch =
+          nama.contains(filter.searchQuery.toLowerCase()) ||
+          sku.contains(filter.searchQuery.toLowerCase());
 
       if (filter.selectedCategory == 'SEMUA') return matchesSearch;
-      return matchesSearch && nama.contains(filter.selectedCategory.toLowerCase());
+      return matchesSearch &&
+          nama.contains(filter.selectedCategory.toLowerCase());
     }).toList();
   });
 });

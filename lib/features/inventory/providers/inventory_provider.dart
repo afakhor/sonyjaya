@@ -1,14 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart';
 import '../../../core/database/local_database.dart';
 import '../../../core/cache/isar_service.dart';
 
-final localDbProvider = Provider<LocalDatabase>((ref) => LocalDatabase());
+// 1. Provider Singleton Database Utama dengan Manajemen Disposal
+final localDbProvider = Provider<LocalDatabase>((ref) {
+  final db = LocalDatabase();
+  ref.onDispose(() => db.close());
+  return db;
+});
 
+// 2. Stream Provider untuk Sinkronisasi Real-time UI Inventory
 final inventoryStreamProvider = StreamProvider.autoDispose<List<BarangData>>((ref) {
   final db = ref.watch(localDbProvider);
   return db.barangDao.watchAllBarang();
 });
 
+// 3. Controller Provider untuk Eksekusi Logika Bisnis Inventory
 final inventoryControllerProvider = Provider<InventoryController>((ref) {
   return InventoryController(ref);
 });
@@ -17,33 +25,73 @@ class InventoryController {
   final Ref _ref;
   InventoryController(this._ref);
 
-  Future<void> beli({required int barangId, required int qty, required double harga}) async {
+  /// Aksi Pembelian Stok (Restok Barang / Masuk)
+  Future<void> beli({
+    required int barangId,
+    required int qty,
+    required double harga,
+    bool isSatuanBesar = false,
+    String? supplier,
+  }) async {
     final db = _ref.read(localDbProvider);
     await db.transaksiDao.prosesPembelian(
       barangId: barangId,
       qtyInput: qty,
       hargaBeliPerSatuanInput: harga,
+      isSatuanBesar: isSatuanBesar,
+      supplier: supplier,
     );
-    await _refreshCache(barangId);
+    await refreshCache(barangId);
   }
 
-  Future<void> jual({required int barangId, required int qty, required double hargaJual}) async {
+  /// Aksi Penjualan Stok (Eceran / Grosir / Kasir)
+  Future<void> jual({
+    required int barangId,
+    required int qty,
+    required double hargaJual,
+    bool isSatuanBesar = false,
+    String tipe = 'eceran',
+  }) async {
     final db = _ref.read(localDbProvider);
     await db.transaksiDao.prosesPenjualan(
       barangId: barangId,
       qtyInput: qty,
       hargaJualPerSatuanInput: hargaJual,
+      isSatuanBesar: isSatuanBesar,
+      tipe: tipe,
     );
-    await _refreshCache(barangId);
+    await refreshCache(barangId);
   }
 
-  Future<void> _refreshCache(int barangId) async {
+  /// Aksi Stock Opname (Koreksi Fisik Gudang)
+  Future<void> opname({
+    required int barangId,
+    required int stokFisik,
+    String? keterangan,
+  }) async {
+    final db = _ref.read(localDbProvider);
+    await db.transaksiDao.prosesStockOpname(
+      barangId: barangId,
+      stokFisik: stokFisik,
+      keterangan: keterangan,
+    );
+    await refreshCache(barangId);
+  }
+
+  /// Hitung Ulang TOR (Turnover Ratio) & Sinkronisasi Cache Isar Fast-Read
+  Future<void> refreshCache(int barangId) async {
     final db = _ref.read(localDbProvider);
     final barang = await (db.select(db.barang)..where((b) => b.id.equals(barangId))).getSingle();
 
+    // Hitung titik potong 30 hari lalu secara presisi dari Dart
+    final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
+
     final keluar30hari = await db.customSelect(
-      'SELECT SUM(ABS(qty)) as total FROM kartu_stok WHERE barang_id = ? AND tipe = "KELUAR" AND tanggal > datetime("now", "-30 days")',
-      variables: [Variable.withInt(barangId)]
+      'SELECT SUM(ABS(qty)) as total FROM kartu_stok WHERE barang_id = ? AND tipe = "KELUAR" AND tanggal > ?',
+      variables: [
+        Variable.withInt(barangId),
+        Variable.withDateTime(thirtyDaysAgo),
+      ],
     ).getSingle();
 
     final rawTotal = keluar30hari.data['total'];
@@ -51,19 +99,18 @@ class InventoryController {
     final tor = barang.stok == 0 ? 0.0 : totalKeluar / barang.stok;
 
     await IsarService.syncFromDrift(
-      barangId: barang.id, 
-      nama: barang.nama, 
+      barangId: barang.id,
+      nama: barang.nama,
       sku: barang.sku ?? '',
-      stok: barang.stok, 
+      stok: barang.stok,
       safetyStock: barang.safetyStock,
-      hpp: barang.hppAverage, 
+      hpp: barang.hppAverage,
       tor: tor.toDouble(),
     );
   }
-}
 
-extension InventoryExtension on InventoryController {
+  /// Alias pemanggilan pasca-checkout (kompatibilitas dengan KasirNotifier)
   Future<void> refreshCacheAfterCheckout(int barangId) async {
-    await _refreshCache(barangId);
+    await refreshCache(barangId);
   }
 }

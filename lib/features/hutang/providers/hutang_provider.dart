@@ -7,7 +7,7 @@ class HutangSummary {
   final String namaSupplier;
   final double totalHutang;
   final int jumlahPo;
-  final List<PurchaseOrdersData> daftarPo;
+  final List<PurchaseOrders> daftarPo;
 
   HutangSummary({
     required this.namaSupplier,

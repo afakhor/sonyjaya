@@ -6,7 +6,7 @@ class HutangSummary {
   final String namaSupplier;
   final double totalHutang;
   final int jumlahPo;
-  final List<PurchaseOrders> daftarPo;
+  final List<PurchaseOrder> daftarPo;
 
   HutangSummary({
     required this.namaSupplier,
@@ -20,10 +20,10 @@ final hutangListProvider = FutureProvider.autoDispose<List<HutangSummary>>((ref)
   final db = ref.watch(localDbProvider);
 
   final listPo = await (db.select(db.purchaseOrders)
-        ..where((p) => p.tipePo.equals('VENDOR') & p.statusBayar.equals('BELUM_LUNAS')))
+        ..where((p) => p.tipePo.equals('VENDOR').and(p.statusBayar.equals('BELUM_LUNAS'))))
       .get();
 
-  final Map<String, List<PurchaseOrders>> grouped = {};
+  final Map<String, List<PurchaseOrder>> grouped = {};
   for (var po in listPo) {
     final String nama = po.namaRelasi.isNotEmpty ? po.namaRelasi : 'Supplier Umum';
     if (!grouped.containsKey(nama)) {

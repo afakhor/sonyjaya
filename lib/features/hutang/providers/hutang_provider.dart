@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/database/local_database.dart';
+import '../../../core/database/local_database.dart';
 import '../inventory/providers/inventory_provider.dart';
 
 // Model Ringkasan Hutang ke Supplier
@@ -38,7 +38,7 @@ final hutangListProvider = FutureProvider.autoDispose<List<HutangSummary>>((ref)
 
   List<HutangSummary> result = [];
   grouped.forEach((nama, pos) {
-    double total = pos.fold(0, (sum, p) => sum + p.totalNilai);
+    double total = pos.fold(0, (sum, p) => sum + p.totalKeseluruhan);
     result.add(HutangSummary(
       namaSupplier: nama,
       totalHutang: total,

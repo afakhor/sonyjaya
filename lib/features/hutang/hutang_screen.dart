@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart' as drift;
 import 'providers/hutang_provider.dart';
 import '../inventory/providers/inventory_provider.dart';
+import '../../../core/database/local_database.dart'; // Import DB untuk Companion
 
 class HutangScreen extends ConsumerWidget {
   const HutangScreen({super.key});
@@ -13,7 +15,7 @@ class HutangScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Buku Hutang Supplier / Distributor'),
+        title: const Text('Buku Hutang Supplier'),
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
       ),
@@ -26,7 +28,7 @@ class HutangScreen extends ConsumerWidget {
                 children: [
                   Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
                   SizedBox(height: 12),
-                  Text('Aman! Tidak ada hutang ke supplier saat ini.', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                  Text('Aman! Tidak ada hutang ke supplier.', style: TextStyle(color: Colors.grey, fontSize: 16)),
                 ],
               ),
             );
@@ -43,7 +45,7 @@ class HutangScreen extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Total Kewajiban Hutang:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const Text('Total Kewajiban:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     Text('Rp ${grandTotalHutang.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.deepOrange)),
                   ],
                 ),
@@ -57,33 +59,18 @@ class HutangScreen extends ConsumerWidget {
                     return Card(
                       elevation: 2,
                       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
                         leading: CircleAvatar(
                           backgroundColor: Colors.orange.shade200,
                           child: const Icon(Icons.business, color: Colors.black87),
                         ),
-                        title: Text(summary.namaSupplier, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 4.0),
-                          child: Text('${summary.jumlahPo} Nota PO Belum Lunas'),
+                        title: Text(summary.namaSupplier, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text('${summary.jumlahPo} Nota PO Belum Lunas'),
+                        trailing: Text(
+                          'Rp ${summary.totalHutang.toStringAsFixed(0)}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.deepOrange),
                         ),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              'Rp ${summary.totalHutang.toStringAsFixed(0)}',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.deepOrange),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text('Ketuk untuk Bayar', style: TextStyle(fontSize: 11, color: Colors.blue)),
-                          ],
-                        ),
-                        onTap: () {
-                          _showDetailHutangSupplier(context, ref, summary);
-                        },
+                        onTap: () => _showDetailHutang(context, ref, summary),
                       ),
                     );
                   },
@@ -98,74 +85,38 @@ class HutangScreen extends ConsumerWidget {
     );
   }
 
-  void _showDetailHutangSupplier(BuildContext context, WidgetRef ref, HutangSummary summary) {
+  void _showDetailHutang(BuildContext context, WidgetRef ref, HutangSummary summary) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.6,
-        minChildSize: 0.4,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (context, scrollController) => Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Pelunasan Hutang: ${summary.namaSupplier}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const Divider(),
-              const SizedBox(height: 8),
-              Expanded(
-                child: ListView.builder(
-                  controller: scrollController,
-                  itemCount: summary.daftarPo.length,
-                  itemBuilder: (context, index) {
-                    final po = summary.daftarPo[index];
-                    return ListTile(
-                      dense: true,
-                      title: Text('PO #${po.noPo} - ${po.tanggal}'),
-                      trailing: Text('Rp ${po.totalKeseluruhan.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    );
-                  },
-                ),
-              ),
-              const Divider(),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Total Pembayaran:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text('Rp ${summary.totalHutang.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.deepOrange)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade800,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size(double.infinity, 48),
-                ),
-                onPressed: () async {
-                  final db = ref.read(localDbProvider);
-                  for (var po in summary.daftarPo) {
-                    await (db.update(db.purchaseOrders)..where((p) => p.id.equals(po.id))).write(
-                      PurchaseOrdersCompanion(statusBayar: Value('LUNAS')),
-                    );
-                  }
-                  ref.invalidate(hutangListProvider);
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Hutang ke ${summary.namaSupplier} berhasil dilunasi!')),
-                    );
-                  }
-                },
-                child: const Text('BAYAR / LUNASKAN HUTANG SUPPLIER', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Pelunasan: ${summary.namaSupplier}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Divider(),
+            ...summary.daftarPo.map((po) => ListTile(
+              title: Text('PO #${po.noPo}'),
+              trailing: Text('Rp ${po.totalKeseluruhan.toStringAsFixed(0)}'),
+            )),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 48)),
+              onPressed: () async {
+                final db = ref.read(localDbProvider);
+                for (var po in summary.daftarPo) {
+                  await (db.update(db.purchaseOrders)..where((p) => p.id.equals(po.id))).write(
+                    PurchaseOrdersCompanion(statusBayar: drift.Value('LUNAS')), // Fixed Drift Value
+                  );
+                }
+                ref.invalidate(hutangListProvider);
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: const Text('LUNASKAN HUTANG'),
+            ),
+          ],
         ),
       ),
     );

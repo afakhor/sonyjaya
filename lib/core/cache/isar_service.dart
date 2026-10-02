@@ -7,14 +7,21 @@ class IsarService {
 
   static Future<void> init() async {
     final dir = await getApplicationDocumentsDirectory();
-    isar = await Isar.open(
-      [FastStockCacheSchema],
-      directory: dir.path,
-      name: 'sony_jaya_cache'
-    );
+    if (Isar.instanceNames.isEmpty) {
+      isar = await Isar.open(
+        [FastStockCacheSchema],
+        directory: dir.path,
+        name: 'sony_jaya_cache',
+      );
+    } else {
+      isar = Isar.getInstance('sony_jaya_cache') ?? await Isar.open(
+        [FastStockCacheSchema],
+        directory: dir.path,
+        name: 'sony_jaya_cache',
+      );
+    }
   }
 
-  // Dipanggil setiap habis transaksi jual/beli
   static Future<void> syncFromDrift({
     required int barangId,
     required String nama,
@@ -25,16 +32,16 @@ class IsarService {
     required double tor,
   }) async {
     final cache = FastStockCache()
-     ..barangId = barangId
-     ..nama = nama
-     ..sku = sku
-     ..stok = stok
-     ..safetyStock = safetyStock
-     ..hppAverage = hpp
-     ..tor = tor
-     ..isFastMoving = tor > 2.5 // > 2.5x per bulan = fast
-     ..perluReorder = stok <= safetyStock
-     ..lastUpdated = DateTime.now();
+      ..barangId = barangId
+      ..nama = nama
+      ..sku = sku
+      ..stok = stok
+      ..safetyStock = safetyStock
+      ..hppAverage = hpp
+      ..tor = tor
+      ..isFastMoving = tor > 2.5
+      ..perluReorder = stok <= safetyStock
+      ..lastUpdated = DateTime.now();
 
     await isar.writeTxn(() async {
       await isar.fastStockCaches.putByBarangId(cache);

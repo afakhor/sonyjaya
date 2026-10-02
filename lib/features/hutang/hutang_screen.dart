@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:drift/drift.dart' as drift;
 import 'providers/hutang_provider.dart';
-import '../inventory/providers/inventory_provider.dart';
-import '../../../core/database/local_database.dart'; // Import DB untuk Companion
 
 class HutangScreen extends ConsumerWidget {
   const HutangScreen({super.key});
@@ -11,66 +8,131 @@ class HutangScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final hutangAsync = ref.watch(hutangListProvider);
-    const primaryColor = Color(0xFF1E293B);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Buku Hutang Supplier'),
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
+        title: const Text('Daftar Hutang Vendor'),
+        elevation: 1,
       ),
       body: hutangAsync.when(
-        data: (summaries) {
-          if (summaries.isEmpty) {
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Gagal memuat data hutang: $err',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.red),
+            ),
+          ),
+        ),
+        data: (groups) {
+          if (groups.isEmpty) {
             return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.check_circle_outline, size: 64, color: Colors.green),
                   SizedBox(height: 12),
-                  Text('Aman! Tidak ada hutang ke supplier.', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                  Text(
+                    'Tidak ada hutang vendor aktif.',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
                 ],
               ),
             );
           }
 
-          double grandTotalHutang = summaries.fold(0, (sum, item) => sum + item.totalHutang);
+          final grandTotalHutang = groups.fold<double>(
+            0.0,
+            (sum, item) => sum + item.totalHutang,
+          );
 
           return Column(
             children: [
+              // Header Summary Total Hutang
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                color: Colors.orange.shade100,
+                padding: const EdgeInsets.all(16.0),
+                color: Colors.red.shade50,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Total Kewajiban:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    Text('Rp ${grandTotalHutang.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.deepOrange)),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Total Hutang Vendor',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.red,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          '${groups.length} Supplier (${groups.fold<int>(0, (sum, g) => sum + g.jumlahPo)} PO)',
+                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      'Rp ${grandTotalHutang.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red,
+                      ),
+                    ),
                   ],
                 ),
               ),
+              const Divider(height: 1),
+              // List Supplier & Rincian PO
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.all(8),
-                  itemCount: summaries.length,
+                  itemCount: groups.length,
                   itemBuilder: (context, index) {
-                    final summary = summaries[index];
+                    final group = groups[index];
                     return Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.orange.shade200,
-                          child: const Icon(Icons.business, color: Colors.black87),
+                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      child: ExpansionTile(
+                        leading: const CircleAvatar(
+                          backgroundColor: Colors.redAccent,
+                          child: Icon(Icons.store, color: Colors.white),
                         ),
-                        title: Text(summary.namaSupplier, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('${summary.jumlahPo} Nota PO Belum Lunas'),
+                        title: Text(
+                          group.namaSupplier,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text('${group.jumlahPo} Purchase Order (PO)'),
                         trailing: Text(
-                          'Rp ${summary.totalHutang.toStringAsFixed(0)}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.deepOrange),
+                          'Rp ${group.totalHutang.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: Colors.red,
+                          ),
                         ),
-                        onTap: () => _showDetailHutang(context, ref, summary),
+                        children: group.daftarPo.map((po) {
+                          final tgl = po.tanggalBuat.toLocal().toString().split('.')[0];
+                          return Container(
+                            color: Colors.grey.shade50,
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                              leading: const Icon(Icons.receipt_long, color: Colors.grey),
+                              title: Text('PO #${po.noPo}'),
+                              subtitle: Text('Tanggal: $tgl\nStatus: ${po.statusPo}'),
+                              isThreeLine: true,
+                              trailing: Text(
+                                'Rp ${po.totalKeseluruhan.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     );
                   },
@@ -79,45 +141,6 @@ class HutangScreen extends ConsumerWidget {
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Error: $err')),
-      ),
-    );
-  }
-
-  void _showDetailHutang(BuildContext context, WidgetRef ref, HutangSummary summary) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Pelunasan: ${summary.namaSupplier}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const Divider(),
-            ...summary.daftarPo.map((po) => ListTile(
-              title: Text('PO #${po.noPo}'),
-              trailing: Text('Rp ${po.totalKeseluruhan.toStringAsFixed(0)}'),
-            )),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 48)),
-              onPressed: () async {
-                final db = ref.read(localDbProvider);
-                for (var po in summary.daftarPo) {
-                  await (db.update(db.purchaseOrders)..where((p) => p.id.equals(po.id))).write(
-                    PurchaseOrdersCompanion(statusBayar: drift.Value('LUNAS')), // Fixed Drift Value
-                  );
-                }
-                ref.invalidate(hutangListProvider);
-                if (context.mounted) Navigator.pop(context);
-              },
-              child: const Text('LUNASKAN HUTANG'),
-            ),
-          ],
-        ),
       ),
     );
   }

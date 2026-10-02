@@ -32,12 +32,10 @@ class PiutangScreen extends ConsumerWidget {
             );
           }
 
-          // Hitung total keseluruhan piutang toko
           double grandTotalPiutang = summaries.fold(0, (sum, item) => sum + item.totalPiutang);
 
           return Column(
             children: [
-              // Banner Informasi Total Piutang
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -50,8 +48,6 @@ class PiutangScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              
-              // Daftar Pelanggan Berbon
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.all(8),
@@ -112,63 +108,67 @@ class PiutangScreen extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Rincian Bon: ${summary.namaPelanggan}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const Divider(),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 200,
-              child: ListView.builder(
-                itemCount: summary.daftarTransaksi.length,
-                itemBuilder: (context, index) {
-                  final trx = summary.daftarTransaksi[index];
-                  return ListTile(
-                    dense: true,
-                    title: Text('Nota #${trx.id} - ${trx.tanggal}'),
-                    trailing: Text('Rp ${trx.totalHarga.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  );
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Rincian Bon: ${summary.namaPelanggan}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Divider(),
+              const SizedBox(height: 8),
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollController,
+                  itemCount: summary.daftarTransaksi.length,
+                  itemBuilder: (context, index) {
+                    final trx = summary.daftarTransaksi[index];
+                    return ListTile(
+                      dense: true,
+                      title: Text('Nota #${trx.id} - ${trx.tanggal}'),
+                      trailing: Text('Rp ${trx.totalHarga.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    );
+                  },
+                ),
+              ),
+              const Divider(),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Total Tagihan:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text('Rp ${summary.totalPiutang.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade700,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+                onPressed: () async {
+                  final db = ref.read(localDbProvider);
+                  for (var trx in summary.daftarTransaksi) {
+                    await (db.update(db.transaksi)..where((t) => t.id.equals(trx.id))).write(
+                      TransaksiCompanion(statusBayar: Value('LUNAS')),
+                    );
+                  }
+                  ref.invalidate(piutangListProvider);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Piutang ${summary.namaPelanggan} berhasil dilunaskan!')),
+                    );
+                  }
                 },
+                child: const Text('LUNASKAN SEMUA BON INI', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
-            ),
-            const Divider(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Total Tagihan:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                Text('Rp ${summary.totalPiutang.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red)),
-              ],
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green.shade700,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 48),
-              ),
-              onPressed: () async {
-                // Logika Pelunasan Piutang (Update status transaksi jadi LUNAS di Database)
-                final db = ref.read(localDbProvider);
-                for (var trx in summary.daftarTransaksi) {
-                  await (db.update(db.transaksi)..where((t) => t.id.equals(trx.id))).write(
-                    TransaksiCompanion(statusBayar: const Value('LUNAS')),
-                  );
-                }
-                ref.invalidate(piutangListProvider);
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Piutang ${summary.namaPelanggan} berhasil dilunaskan!')),
-                  );
-                }
-              },
-              child: const Text('LUNASKAN SEMUA BON INI', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

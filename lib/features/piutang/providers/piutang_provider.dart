@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/database/local_database.dart';
-import '../../inventory/providers/inventory_provider.dart';
-
+import 'package:sony_jaya/core/database/local_database.dart';
+import 'package:sony_jaya/features/inventory/providers/inventory_provider.dart';
 
 // Model Ringkasan Piutang per Pelanggan
 class PiutangSummary {

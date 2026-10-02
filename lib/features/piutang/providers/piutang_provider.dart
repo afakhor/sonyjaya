@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/local_database.dart';
 import '../../inventory/providers/inventory_provider.dart';
 
+
 // Model Ringkasan Piutang per Pelanggan
 class PiutangSummary {
   final String namaPelanggan;
@@ -21,7 +22,7 @@ class PiutangSummary {
 final piutangListProvider = FutureProvider.autoDispose<List<PiutangSummary>>((ref) async {
   final db = ref.watch(localDbProvider);
 
-  // Ambil transaksi yang tipenya 'piutang' atau status bayarnya belum lunas
+  // Ambil transaksi yang status bayarnya belum lunas
   final listTransaksi = await (db.select(db.transaksi)
         ..where((t) => t.statusBayar.equals('BELUM_LUNAS')))
       .get();
@@ -36,10 +37,13 @@ final piutangListProvider = FutureProvider.autoDispose<List<PiutangSummary>>((re
     grouped[nama]!.add(trx);
   }
 
-  // Ubah ke bentuk list summary
-  List<PiutangSummary> result = [];
+  // Ubah ke bentuk list summary dengan akumulasi bertipe double
+  final List<PiutangSummary> result = [];
   grouped.forEach((nama, trxs) {
-    double total = trxs.fold(0, (sum, t) => sum + t.totalHarga);
+    final double total = trxs.fold<double>(
+      0.0,
+      (sum, t) => sum + (t.totalHarga as num).toDouble(),
+    );
     result.add(PiutangSummary(
       namaPelanggan: nama,
       totalPiutang: total,

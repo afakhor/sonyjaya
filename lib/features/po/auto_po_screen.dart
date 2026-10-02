@@ -9,7 +9,7 @@ class AutoPoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      app: AppBar(
+      appBar: AppBar(
         title: const Text('Auto-PO & Fast Moving Dashboard'),
       ),
       body: Column(

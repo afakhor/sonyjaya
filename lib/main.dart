@@ -16,13 +16,15 @@ import 'features/backup/backup_screen.dart';       // Sesuaikan jika nama file b
 import 'features/log/log_screen.dart';             // Sesuaikan jika nama file berbeda
 import 'features/perkakas/perkakas_screen.dart';   // Sesuaikan jika nama file berbeda
 
+
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Inisialisasi Database Lokal & Cache
   await IsarService.init();
-  
-  // Memperbaiki pemanggilan fungsi inisialisasi Worker yang benar
+
+  // Inisialisasi Workmanager
   await AutoWorker.init();
 
   runApp(
@@ -62,7 +64,6 @@ class MainNavigationShell extends StatefulWidget {
 class _MainNavigationShellState extends State<MainNavigationShell> {
   int _currentIndex = 0;
 
-  // Daftar Screen Utama untuk Bottom Navigation Bar
   final List<Widget> _mainScreens = [
     const KasirScreen(),
     const InventoryScreen(),
@@ -111,26 +112,34 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
   String _getAppBarTitle(int index) {
     switch (index) {
-      case 0: return 'Sony Jaya - Kasir';
-      case 1: return 'Manajemen Inventory';
-      case 2: return 'Riwayat Transaksi';
-      case 3: return 'Auto Purchase Order';
-      default: return 'Sony Jaya iPOS';
+      case 0:
+        return 'Sony Jaya - Kasir';
+      case 1:
+        return 'Manajemen Inventory';
+      case 2:
+        return 'Riwayat Transaksi';
+      case 3:
+        return 'Auto Purchase Order';
+      default:
+        return 'Sony Jaya iPOS';
     }
   }
 
-  // Modal / BottomSheet untuk mengakses seluruh fitur lengkap sesuai direktori gambar
   void _showFullMenuModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Wrap(
-          runSpacing: 10,
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        builder: (_, scrollController) => ListView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(16),
           children: [
             const Text(
-              'Semua Modul & Fitur', 
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+              'Semua Modul & Fitur',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const Divider(),
             ListTile(

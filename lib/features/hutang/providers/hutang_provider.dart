@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sony_jaya/core/database/local_database.dart';
-import 'package:sony_jaya/features/inventory/providers/inventory_provider.dart';
+import '../../../core/database/local_database.dart';
+import '../../inventory/providers/inventory_provider.dart';
 
 // Model Ringkasan Hutang ke Supplier
 class HutangSummary {
@@ -21,15 +21,16 @@ class HutangSummary {
 final hutangListProvider = FutureProvider.autoDispose<List<HutangSummary>>((ref) async {
   final db = ref.watch(localDbProvider);
 
-  // Ambil PO tipe VENDOR yang status pembayarannya belum lunas
+  // Ambil PO tipe VENDOR yang status PO-nya BELUM_LUNAS
+  // Menggunakan statusPo dan tanda kurung eksplisit untuk presedensi operator Drift &
   final listPo = await (db.select(db.purchaseOrders)
-        ..where((p) => p.tipePo.equals('VENDOR') & p.statusBayar.equals('BELUM_LUNAS')))
+        ..where((p) => (p.tipePo.equals('VENDOR')) & (p.statusPo.equals('BELUM_LUNAS'))))
       .get();
 
-  // Kelompokkan berdasarkan nama relasi / supplier dengan penanganan null-safety
+  // Kelompokkan berdasarkan nama relasi / supplier
   final Map<String, List<PurchaseOrderData>> grouped = {};
   for (var po in listPo) {
-    final nama = po.namaRelasi ?? 'Supplier Umum';
+    final String nama = po.namaRelasi.isNotEmpty ? po.namaRelasi : 'Supplier Umum';
     if (!grouped.containsKey(nama)) {
       grouped[nama] = [];
     }
@@ -38,9 +39,10 @@ final hutangListProvider = FutureProvider.autoDispose<List<HutangSummary>>((ref)
 
   final List<HutangSummary> result = [];
   grouped.forEach((nama, pos) {
+    // Presisi kalkulasi bertipe double dengan .fold<double>(0.0, ...)
     final double total = pos.fold<double>(
       0.0,
-      (sum, p) => sum + (p.totalKeseluruhan as num).toDouble(),
+      (sum, p) => sum + p.totalKeseluruhan,
     );
     result.add(HutangSummary(
       namaSupplier: nama,

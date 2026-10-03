@@ -85,9 +85,6 @@ class PurchaseOrders extends Table {
   TextColumn get statusBayar => text().withDefault(const Constant('LUNAS'))();
   RealColumn get totalKeseluruhan => real().withDefault(const Constant(0))();
   TextColumn get statusPo => text().withDefault(const Constant('PENDING'))();
-
-  // ALIAS COMPATIBILITY BIAR kode lama tetap jalan
-  DateTimeColumn get tanggalBuat => tanggalPo;
 }
 
 class PurchaseOrderItems extends Table {
@@ -132,11 +129,17 @@ class LocalDatabase extends _$LocalDatabase {
   );
 }
 
-// COMPATIBILITY LAYER - TAMBAHAN BOLEH, LOGIKA TIDAK DIUBAH
+// === COMPAT LAYER - BOLEH NAMBAH, JANGAN HAPUS LOGIKA ===
 extension BarangDataCompat on BarangData {
   String? get satuanKecil => satuanTerkecil;
   String? get satuan => satuanBesar;
   String get satuanDasar => satuanTerkecil;
 }
-typedef PurchaseOrderData = PurchaseOrdersData;
-typedef BarangDataAlias = BarangData;
+
+extension PurchaseOrderCompat on PurchaseOrder {
+  DateTime get tanggalBuat => tanggalPo;
+}
+
+// Alias untuk kode lama yang masih manggil PurchaseOrderData
+typedef PurchaseOrderData = PurchaseOrder;
+typedef PurchaseOrdersData = PurchaseOrder;

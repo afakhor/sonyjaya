@@ -8,12 +8,24 @@ class BarangDao extends DatabaseAccessor<LocalDatabase> with _$BarangDaoMixin {
 
   // Untuk POS - reaktif
   Stream<List<BarangData>> watchAllBarang() => (select(barang)..orderBy([(b) => OrderingTerm.asc(b.nama)])).watch();
+  
+  // FIX: tambah merek biar search perkakas lebih akurat
   Stream<List<BarangData>> watchCari(String keyword) {
-    return (select(barang)..where((b) => b.nama.like('%$keyword%') | b.sku.like('%$keyword%'))).watch();
+    return (select(barang)..where((b) => b.nama.like('%$keyword%') | b.sku.like('%$keyword%') | b.merek.like('%$keyword%'))).watch();
+  }
+
+  // UNTUK AUTOCOMPLETE - tambahan baru, jangan hapus yang lama
+  Future<List<BarangData>> cariBarang(String keyword) {
+    return (select(barang)..where((b) => b.nama.like('%$keyword%') | b.sku.like('%$keyword%') | b.merek.like('%$keyword%'))..limit(10)).get();
   }
 
   Future<BarangData> getById(int id) => (select(barang)..where((b) => b.id.equals(id))).getSingle();
-  
+
+  // TAMBAHAN BARU - untuk input barang perkakas
+  Future<int> insertBarang(BarangCompanion data) => into(barang).insert(data);
+  Future<void> updateBarang(BarangData data) => update(barang).replace(data);
+  Future<void> deleteBarang(int id) => (delete(barang)..where((b) => b.id.equals(id))).go();
+
   // Dead stock >90 hari ngendap di log MASUK
   Future<List<KartuStokData>> getDeadStockLog(int barangId) {
     final batas = DateTime.now().subtract(const Duration(days: 90));

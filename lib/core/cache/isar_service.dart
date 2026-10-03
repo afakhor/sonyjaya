@@ -6,21 +6,14 @@ class IsarService {
   static late Isar isar;
 
   static Future<void> init() async {
-    final dir = await getApplicationDocumentsDirectory();
-    if (Isar.instanceNames.isEmpty) {
-      isar = await Isar.open(
-        [FastStockCacheSchema],
-        directory: dir.path,
-        name: 'sony_jaya_cache',
-      );
-    } else {
-      isar = Isar.getInstance('sony_jaya_cache') ?? await Isar.open(
-        [FastStockCacheSchema],
-        directory: dir.path,
-        name: 'sony_jaya_cache',
-      );
-    }
+  final dir = await getApplicationDocumentsDirectory();
+  if (Isar.instanceNames.isEmpty) {
+    isar = await Isar.open([FastStockCacheSchema], directory: dir.path, name: 'sony_jaya_cache');
+  } else {
+    isar = Isar.getInstance('sony_jaya_cache')?? await Isar.open([FastStockCacheSchema], directory: dir.path, name: 'sony_jaya_cache');
   }
+  // JANGAN sync di sini, biar kilat
+}
 
   static Future<void> syncFromDrift({
     required int barangId,

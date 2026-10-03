@@ -14,21 +14,23 @@ class LaporanDao extends DatabaseAccessor<LocalDatabase> with _$LaporanDaoMixin 
   }
 
   Future<double> getLabaHariIni() async {
-    final today = DateTime.now(); final start = DateTime(today.year, today.month, today.day);
+    final today = DateTime.now();
+    final start = DateTime(today.year, today.month, today.day);
     final query = await customSelect('SELECT SUM(laba) as total FROM penjualan WHERE tanggal >=?', variables: [Variable.withDateTime(start)]).getSingle();
-    return query.data['total'] as double??? 0.0;
+    return (query.data['total'] as num?)?.toDouble() ?? 0.0;
   }
 
   Future<double> getLabaPeriode(DateTime start, DateTime end) async {
     final q = await customSelect('SELECT SUM(laba) as total FROM penjualan WHERE tanggal >=? AND tanggal <=?', variables: [Variable.withDateTime(start), Variable.withDateTime(end.add(const Duration(days:1)))]).getSingle();
-    return q.data['total'] as double??? 0.0;
+    return (q.data['total'] as num?)?.toDouble() ?? 0.0;
   }
 
-  Future<List<BarangData>> getPerluReorder() => (select(barang)..where((b) => b.stok.isSmallerOrEqual(b.safetyStock))).get();
+  Future<List<BarangData>> getPerluReorder() {
+    return (select(barang)..where((b) => b.stok.isSmallerOrEqual(b.safetyStock))).get();
+  }
 
-  // PERGERAKAN HPP + LABA/RUGI PER BARANG
   Future<List<Map<String, dynamic>>> getPergerakanHpp(int barangId) async {
-    final logs = await (select(kartuStok)..where((k) => k.barangId.equals(barangId))..where((k) => k.tipe.equals('MASUK') | k.tipe.equals('KOREKSI_HPP'))..orderBy([(k) => OrderingTerm.asc(k.tanggal)])).get();
+    final logs = await (select(kartuStok)..where((k) => k.barangId.equals(barangId))..where((k) => k.tipe.isIn(['MASUK','KOREKSI_HPP']))..orderBy([(k) => OrderingTerm.asc(k.tanggal)]))).get();
     return logs.map((e)=>{'tanggal': e.tanggal, 'hpp': e.hargaBeliSaatItu, 'stokAkhir': e.stokAkhir, 'ref': e.refId}).toList();
   }
 }

@@ -19,7 +19,7 @@ import 'features/backup/backup_screen.dart';
 import 'features/log/log_screen.dart';
 import 'features/perkakas/perkakas_screen.dart';
 import 'features/supplier/supplier_screen.dart';
-import 'features/supplier/supplier_detail_screen.dart';
+// import detail gak perlu di main, dipanggil dari supplier_screen
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,8 +32,14 @@ void main() async {
   runApp(const ProviderScope(child: SonyJayaApp()));
 }
 
-// === GLOBAL AUTO UPDATE NOTIFIER ===
-final autoRefreshProvider = StateProvider<int>((ref) => 0);
+// === GLOBAL AUTO UPDATE NOTIFIER - FIX STATEPROVIDER ===
+// Dulu: StateProvider<int>((ref)=>0) -> sekarang pakai Notifier biar build lolos
+class AutoRefreshNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+  void increment() => state++;
+}
+final autoRefreshProvider = NotifierProvider<AutoRefreshNotifier, int>(AutoRefreshNotifier.new);
 
 class SonyJayaApp extends StatelessWidget {
   const SonyJayaApp({super.key});
@@ -63,7 +69,7 @@ class SonyJayaApp extends StatelessWidget {
           backgroundColor: Colors.white,
           indicatorColor: const Color(0xFFDBEAFE),
           elevation: 2,
-          labelTextStyle: MaterialStateProperty.all(const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+          labelTextStyle: WidgetStateProperty.all(const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
         ),
       ),
       home: const MainNavigationShell(),
@@ -93,16 +99,15 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> with 
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // AUTO UPDATE TIAP 15 DETIK + SAAT APP RESUME
+    // AUTO UPDATE TIAP 15 DETIK + SAAT APP RESUME - LOGIKA TETAP
     _autoTimer = Timer.periodic(const Duration(seconds: 15), (_) => _refreshAll());
   }
 
   void _refreshAll() {
-    // invalidate semua stream biar ke-fetch ulang dari Drift
+    // invalidate semua stream biar ke-fetch ulang dari Drift - LOGIKA TETAP
     ref.invalidate(inventoryStreamProvider);
     ref.invalidate(supplierListProvider);
-    ref.read(autoRefreshProvider.notifier).state++;
-    // debug
+    ref.read(autoRefreshProvider.notifier).increment(); // FIX: dulu state++
     debugPrint('🔄 Auto update data ${DateTime.now()}');
   }
 
@@ -122,9 +127,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> with 
 
   @override
   Widget build(BuildContext context) {
-    // listen global refresh trigger
     ref.watch(autoRefreshProvider);
-
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: NavigationBar(
@@ -147,66 +150,17 @@ class ExtraFeaturesMenu extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // auto refresh trigger
     final refreshTick = ref.watch(autoRefreshProvider);
 
     final List<Map<String, dynamic>> menuItems = [
-      {
-        'title': 'Input + Beli HPP',
-        'subtitle': 'Auto suggest & update HPP',
-        'icon': Icons.add_shopping_cart_rounded,
-        'color': const Color(0xFF10B981),
-        'screen': const BarangMasukScreen(),
-      },
-      {
-        'title': 'Master Supplier',
-        'subtitle': 'Hutang & riwayat belanja',
-        'icon': Icons.local_shipping_rounded,
-        'color': const Color(0xFF3B82F6),
-        'screen': const SupplierScreen(),
-      },
-      {
-        'title': 'Katalog Perkakas',
-        'subtitle': 'Filter merek & stok',
-        'icon': Icons.handyman_rounded,
-        'color': const Color(0xFFF59E0B),
-        'screen': const PerkakasScreen(),
-      },
-      {
-        'title': 'Buku Hutang',
-        'subtitle': 'Vendor belum lunas',
-        'icon': Icons.money_off_rounded,
-        'color': const Color(0xFFEF4444),
-        'screen': const HutangScreen(),
-      },
-      {
-        'title': 'Buku Piutang',
-        'subtitle': 'Customer bon',
-        'icon': Icons.request_quote_rounded,
-        'color': const Color(0xFF8B5CF6),
-        'screen': const PiutangScreen(),
-      },
-      {
-        'title': 'Kalkulator Toko',
-        'subtitle': 'Hitung laba cepat',
-        'icon': Icons.calculate_rounded,
-        'color': const Color(0xFF06B6D4),
-        'screen': const KalkulatorScreen(),
-      },
-      {
-        'title': 'Log & Audit',
-        'subtitle': 'Kartu stok FIFO',
-        'icon': Icons.history_rounded,
-        'color': const Color(0xFF64748B),
-        'screen': const LogScreen(),
-      },
-      {
-        'title': 'Backup.BSKRO',
-        'subtitle': 'Cadang & upload Drive',
-        'icon': Icons.cloud_upload_rounded,
-        'color': const Color(0xFF0F172A),
-        'screen': const BackupScreen(),
-      },
+      {'title': 'Input + Beli HPP', 'subtitle': 'Auto suggest & update HPP', 'icon': Icons.add_shopping_cart_rounded, 'color': const Color(0xFF10B981), 'screen': const BarangMasukScreen()},
+      {'title': 'Master Supplier', 'subtitle': 'Hutang & riwayat belanja', 'icon': Icons.local_shipping_rounded, 'color': const Color(0xFF3B82F6), 'screen': const SupplierScreen()},
+      {'title': 'Katalog Perkakas', 'subtitle': 'Filter merek & stok', 'icon': Icons.handyman_rounded, 'color': const Color(0xFFF59E0B), 'screen': const PerkakasScreen()},
+      {'title': 'Buku Hutang', 'subtitle': 'Vendor belum lunas', 'icon': Icons.money_off_rounded, 'color': const Color(0xFFEF4444), 'screen': const HutangScreen()},
+      {'title': 'Buku Piutang', 'subtitle': 'Customer bon', 'icon': Icons.request_quote_rounded, 'color': const Color(0xFF8B5CF6), 'screen': const PiutangScreen()},
+      {'title': 'Kalkulator Toko', 'subtitle': 'Hitung laba cepat', 'icon': Icons.calculate_rounded, 'color': const Color(0xFF06B6D4), 'screen': const KalkulatorScreen()},
+      {'title': 'Log & Audit', 'subtitle': 'Kartu stok FIFO', 'icon': Icons.history_rounded, 'color': const Color(0xFF64748B), 'screen': const LogScreen()},
+      {'title': 'Backup.BSKRO', 'subtitle': 'Cadang & upload Drive', 'icon': Icons.cloud_upload_rounded, 'color': const Color(0xFF0F172A), 'screen': const BackupScreen()},
     ];
 
     return Scaffold(
@@ -215,61 +169,41 @@ class ExtraFeaturesMenu extends ConsumerWidget {
         title: const Text('Fitur Tambahan'),
         backgroundColor: Colors.white,
         actions: [
-          // indikator auto update hidup
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: Row(
-              children: [
-                Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
-                const SizedBox(width: 6),
-                Text('Auto $refreshTick', style: const TextStyle(fontSize: 11)),
-              ],
-            ),
+            child: Row(children: [
+              Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
+              const SizedBox(width: 6),
+              Text('Auto $refreshTick', style: const TextStyle(fontSize: 11)),
+            ]),
           ),
         ],
       ),
       body: GridView.builder(
         padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 14,
-          mainAxisSpacing: 14,
-          childAspectRatio: 1.15,
-        ),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 14, mainAxisSpacing: 14, childAspectRatio: 1.15),
         itemCount: menuItems.length,
         itemBuilder: (context, index) {
           final item = menuItems[index];
           return InkWell(
             onTap: () async {
               await Navigator.push(context, MaterialPageRoute(builder: (_) => item['screen'] as Widget));
-              // SETELAH BALIK DARI SCREEN, AUTO REFRESH
-              ref.read(autoRefreshProvider.notifier).state++;
+              // SETELAH BALIK DARI SCREEN, AUTO REFRESH - LOGIKA TETAP
+              ref.read(autoRefreshProvider.notifier).increment();
               ref.invalidate(inventoryStreamProvider);
               ref.invalidate(supplierListProvider);
             },
             borderRadius: BorderRadius.circular(16),
             child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
-              ),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE2E8F0)), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))]),
               padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: (item['color'] as Color).withOpacity(0.12), borderRadius: BorderRadius.circular(12)),
-                    child: Icon(item['icon'] as IconData, size: 26, color: item['color'] as Color),
-                  ),
-                  const Spacer(),
-                  Text(item['title'] as String, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF0F172A))),
-                  const SizedBox(height: 2),
-                  Text(item['subtitle'] as String, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-                ],
-              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: (item['color'] as Color).withOpacity(0.12), borderRadius: BorderRadius.circular(12)), child: Icon(item['icon'] as IconData, size: 26, color: item['color'] as Color)),
+                const Spacer(),
+                Text(item['title'] as String, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF0F172A))),
+                const SizedBox(height: 2),
+                Text(item['subtitle'] as String, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+              ]),
             ),
           );
         },

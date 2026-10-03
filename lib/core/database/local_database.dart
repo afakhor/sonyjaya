@@ -12,15 +12,15 @@ class Barang extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get sku => text().nullable().unique()();
   TextColumn get nama => text()();
-  TextColumn get merek => text().nullable()(); 
-  TextColumn get satuanTerkecil => text().withDefault(const Constant('Pcs'))(); 
-  TextColumn get satuanBesar => text().withDefault(const Constant('Set'))(); 
-  IntColumn get konversi => integer().withDefault(const Constant(1))(); 
+  TextColumn get merek => text().nullable()();
+  TextColumn get satuanTerkecil => text().withDefault(const Constant('Pcs'))();
+  TextColumn get satuanBesar => text().withDefault(const Constant('Set'))();
+  IntColumn get konversi => integer().withDefault(const Constant(1))();
   RealColumn get hppAverage => real().withDefault(const Constant(0))();
   RealColumn get hargaEcer => real().withDefault(const Constant(0))();
   RealColumn get hargaAgen => real().withDefault(const Constant(0))();
   IntColumn get stok => integer().withDefault(const Constant(0))();
-  IntColumn get safetyStock => integer().withDefault(const Constant(2))(); 
+  IntColumn get safetyStock => integer().withDefault(const Constant(2))();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -61,7 +61,7 @@ class StockOpname extends Table {
   IntColumn get barangId => integer().customConstraint('NOT NULL REFERENCES barang(id) ON DELETE CASCADE')();
   IntColumn get stokSistem => integer()();
   IntColumn get stokFisik => integer()();
-  IntColumn get selisih => integer()(); 
+  IntColumn get selisih => integer()();
   RealColumn get hppSaatOpname => real()();
   TextColumn get keterangan => text().nullable()();
   DateTimeColumn get tanggal => dateTime().withDefault(currentDateAndTime)();
@@ -76,7 +76,7 @@ class Satuan extends Table {
 class PurchaseOrders extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get noPo => text().unique()();
-  TextColumn get tipePo => text()(); // 'CUSTOMER' atau 'VENDOR'
+  TextColumn get tipePo => text()();
   TextColumn get namaRelasi => text()();
   TextColumn get kontakRelasi => text()();
   TextColumn get alamatRelasi => text()();
@@ -85,6 +85,9 @@ class PurchaseOrders extends Table {
   TextColumn get statusBayar => text().withDefault(const Constant('LUNAS'))();
   RealColumn get totalKeseluruhan => real().withDefault(const Constant(0))();
   TextColumn get statusPo => text().withDefault(const Constant('PENDING'))();
+
+  // ALIAS COMPATIBILITY BIAR kode lama tetap jalan
+  DateTimeColumn get tanggalBuat => tanggalPo;
 }
 
 class PurchaseOrderItems extends Table {
@@ -99,19 +102,16 @@ class PurchaseOrderItems extends Table {
 }
 
 @DriftDatabase(
-  tables: [Barang, Pembelian, Penjualan, KartuStok, StockOpname, Satuan, PurchaseOrders, PurchaseOrderItems], 
+  tables: [Barang, Pembelian, Penjualan, KartuStok, StockOpname, Satuan, PurchaseOrders, PurchaseOrderItems],
   daos: [BarangDao, TransaksiDao, LaporanDao, PoDao, SatuanDao]
 )
 class LocalDatabase extends _$LocalDatabase {
   LocalDatabase._internal() : super(driftDatabase(name: 'sony_jaya_hpp_v5'));
   static final LocalDatabase _instance = LocalDatabase._internal();
   factory LocalDatabase() => _instance;
-
   LocalDatabase.forTesting(super.e);
-
   @override
   int get schemaVersion => 5;
-
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (Migrator m) async {
@@ -123,9 +123,7 @@ class LocalDatabase extends _$LocalDatabase {
       await into(satuan).insert(SatuanCompanion.insert(namaSatuan: 'Batang'));
     },
     onUpgrade: (Migrator m, int from, int to) async {
-      if (from < 5) {
-        await m.createAll();
-      }
+      if (from < 5) { await m.createAll(); }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -133,3 +131,12 @@ class LocalDatabase extends _$LocalDatabase {
     },
   );
 }
+
+// COMPATIBILITY LAYER - TAMBAHAN BOLEH, LOGIKA TIDAK DIUBAH
+extension BarangDataCompat on BarangData {
+  String? get satuanKecil => satuanTerkecil;
+  String? get satuan => satuanBesar;
+  String get satuanDasar => satuanTerkecil;
+}
+typedef PurchaseOrderData = PurchaseOrdersData;
+typedef BarangDataAlias = BarangData;

@@ -26,13 +26,15 @@ dependencies:
   isar_community: ^3.3.2
   isar_community_flutter_libs: ^3.3.2
 
-  # Utils Toko Bangunan dan backup
+  # Utils Toko Bangunan dan backup dan share wa
   path_provider: ^2.1.2
   path: ^1.9.0
   file_picker: ^8.1.2
   share_plus: ^10.1.2
   http: ^1.2.0
-  
+  screenshot: ^2.3.0
+  printing: ^5.11.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

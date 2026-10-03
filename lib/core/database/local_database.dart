@@ -5,6 +5,7 @@ import 'daos/transaksi_dao.dart';
 import 'daos/laporan_dao.dart';
 import 'daos/po_dao.dart';
 import 'daos/satuan_dao.dart';
+import 'daos/supplier_dao.dart'; // TAMBAHAN BARU
 
 part 'local_database.g.dart';
 
@@ -98,17 +99,29 @@ class PurchaseOrderItems extends Table {
   RealColumn get hppSaatTransaksi => real()();
 }
 
+// === TABLE BARU - MERGE DARI FITUR SUPPLIER ===
+class Supplier extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get nama => text().unique()();
+  TextColumn get kontak => text().nullable()();
+  TextColumn get alamat => text().nullable()();
+  RealColumn get totalHutang => real().withDefault(const Constant(0))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
 @DriftDatabase(
-  tables: [Barang, Pembelian, Penjualan, KartuStok, StockOpname, Satuan, PurchaseOrders, PurchaseOrderItems],
-  daos: [BarangDao, TransaksiDao, LaporanDao, PoDao, SatuanDao]
+  tables: [Barang, Pembelian, Penjualan, KartuStok, StockOpname, Satuan, PurchaseOrders, PurchaseOrderItems, Supplier],
+  daos: [BarangDao, TransaksiDao, LaporanDao, PoDao, SatuanDao, SupplierDao]
 )
 class LocalDatabase extends _$LocalDatabase {
   LocalDatabase._internal() : super(driftDatabase(name: 'sony_jaya_hpp_v5'));
   static final LocalDatabase _instance = LocalDatabase._internal();
   factory LocalDatabase() => _instance;
   LocalDatabase.forTesting(super.e);
+  
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6; // NAIK DARI 5 KE 6 BIAR MIGRASI JALAN
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (Migrator m) async {
@@ -120,7 +133,12 @@ class LocalDatabase extends _$LocalDatabase {
       await into(satuan).insert(SatuanCompanion.insert(namaSatuan: 'Batang'));
     },
     onUpgrade: (Migrator m, int from, int to) async {
-      if (from < 5) { await m.createAll(); }
+      if (from < 5) {
+        await m.createAll();
+      }
+      if (from < 6) {
+        await m.createTable(supplier); // MIGRASI KHUSUS SUPPLIER
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');

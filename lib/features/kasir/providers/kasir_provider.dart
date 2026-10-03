@@ -2,82 +2,67 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/local_database.dart';
 import '../../inventory/providers/inventory_provider.dart';
 
+enum TipeHarga { ecer, agen }
+
 class CartItem {
   final BarangData barang;
   int qty;
   double hargaJual;
+  TipeHarga tipe;
 
-  CartItem({
-    required this.barang,
-    this.qty = 1,
-    required this.hargaJual,
-  });
-
+  CartItem({required this.barang, this.qty = 1, required this.hargaJual, required this.tipe});
   double get subtotal => qty * hargaJual;
+  double get laba => (hargaJual - barang.hppAverage) * qty;
+  double get marginPersen => barang.hppAverage==0?0: ((hargaJual - barang.hppAverage)/barang.hppAverage*100);
 }
 
 class CartNotifier extends Notifier<List<CartItem>> {
-  @override
-  List<CartItem> build() {
-    return [];
-  }
+  @override List<CartItem> build() => [];
 
-  void tambahItem(BarangData barang, {int qty = 1, double? customHarga}) {
-    final harga = customHarga ?? barang.hargaEcer;
+  void tambahItem(BarangData barang, {int qty = 1, required TipeHarga tipeHarga}) {
+    final harga = tipeHarga == TipeHarga.ecer? barang.hargaEcer : barang.hargaAgen;
+    if (harga < barang.hppAverage) throw Exception('MARGIN GUARD: Harga di bawah HPP Rp ${barang.hppAverage.toStringAsFixed(0)}!');
+    if (qty > barang.stok) throw Exception('Stok tidak cukup! Sisa ${barang.stok}');
 
-    // MARGIN GUARD: Cegah jual di bawah HPP
-    if (harga < barang.hppAverage) {
-      throw Exception('MARGIN GUARD: Harga jual di bawah HPP (${barang.hppAverage})!');
-    }
-
-    final index = state.indexWhere((item) => item.barang.id == barang.id);
-    if (index >= 0) {
-      final existing = state[index];
-      if (existing.qty + qty > barang.stok) {
-        throw Exception('Stok tidak mencukupi! Sisa stok: ${barang.stok}');
-      }
-      state = [
-        for (int i = 0; i < state.length; i++)
-          if (i == index)
-            CartItem(barang: barang, qty: existing.qty + qty, hargaJual: harga)
-          else
-            state[i]
-      ];
+    final idx = state.indexWhere((e)=>e.barang.id==barang.id && e.tipe==tipeHarga);
+    if (idx>=0) {
+      final exist = state[idx];
+      final newQty = exist.qty + qty;
+      if (newQty > barang.stok) throw Exception('Stok tidak cukup!');
+      state = [for(int i=0;i<state.length;i++) if(i==idx) CartItem(barang: barang, qty: newQty, hargaJual: harga, tipe: tipeHarga) else state[i]];
     } else {
-      if (qty > barang.stok) {
-        throw Exception('Stok tidak mencukupi! Sisa stok: ${barang.stok}');
-      }
-      state = [...state, CartItem(barang: barang, qty: qty, hargaJual: harga)];
+      state = [...state, CartItem(barang: barang, qty: qty, hargaJual: harga, tipe: tipeHarga)];
     }
   }
 
-  void hapusItem(int barangId) {
-    state = state.where((item) => item.barang.id != barangId).toList();
+  void updateQty(int barangId, TipeHarga tipe, int newQty) {
+    if (newQty<=0) { hapusItem(barangId, tipe); return; }
+    state = state.map((e)=> e.barang.id==barangId && e.tipe==tipe? CartItem(barang: e.barang, qty: newQty, hargaJual: e.hargaJual, tipe: e.tipe): e).toList();
   }
 
-  void clearCart() {
-    state = [];
-  }
+  void hapusItem(int barangId, TipeHarga tipe) => state = state.where((e)=>!(e.barang.id==barangId && e.tipe==tipe)).toList();
+  void clearCart() => state = [];
 
   Future<void> checkout() async {
     if (state.isEmpty) return;
-
     final db = ref.read(localDbProvider);
-    final inventoryController = ref.read(inventoryControllerProvider);
-
-    for (var cartItem in state) {
-      await db.transaksiDao.prosesPenjualan(
-        barangId: cartItem.barang.id,
-        qtyInput: cartItem.qty,
-        hargaJualPerSatuanInput: cartItem.hargaJual,
-        tipe: 'eceran_kasir',
-      );
-
-      await inventoryController.refreshCacheAfterCheckout(cartItem.barang.id);
+    final inv = ref.read(inventoryControllerProvider);
+    for (var c in state) {
+      await db.transaksiDao.prosesPenjualan(barangId: c.barang.id, qtyInput: c.qty, hargaJualPerSatuanInput: c.hargaJual, tipe: c.tipe==TipeHarga.ecer? 'eceran_kasir':'agen_kasir');
+      await inv.refreshCacheAfterCheckout(c.barang.id);
     }
-
     clearCart();
   }
 }
 
 final cartProvider = NotifierProvider<CartNotifier, List<CartItem>>(CartNotifier.new);
+
+// Filter Kasir
+enum FilterKategoriHarga { semua, ecer, agen, marginTinggi }
+class KasirFilter { String search=''; FilterKategoriHarga kategori=FilterKategoriHarga.semua; }
+class KasirFilterNotifier extends Notifier<KasirFilter> {
+  @override KasirFilter build() => KasirFilter();
+  void setSearch(String v) => state = KasirFilter()..search=v..kategori=state.kategori;
+  void setKategori(FilterKategoriHarga k) => state = KasirFilter()..search=state.search..kategori=k;
+}
+final kasirFilterProvider = NotifierProvider<KasirFilterNotifier, KasirFilter>(KasirFilterNotifier.new);

@@ -1,32 +1,13 @@
 name: Build APK Debug
 on:
-  workflow_dispatch:
   push:
     branches: [ main, master ]
-
-# INI KUNCINYA BIAR BISA PUSH
-permissions:
-  contents: write
-
+  workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Revert ke #207 Update inventory_provider.dart (8510fbf)
-        run: |
-          git config user.name "afakhor"
-          git config user.email "afakhor@users.noreply.github.com"
-          git log --oneline -20
-          HASH=$(git log --oneline --grep="inventory_provider" | head -1 | awk '{print $1}')
-          echo "Revert ke $HASH = #207"
-          git reset --hard $HASH
-          git push origin main --force
-
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -34,21 +15,21 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.10.2
-      - uses: subosito/flutter-action@v2
+      - name: Setup Flutter master (buat workmanager 0.10.10)
+        uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.6'
-          channel: 'stable'
+          channel: 'master'
           cache: true
       - name: Patch AGP
         run: |
           sed -i 's/version "8[^"]*"/version "8.7.3"/g' android/settings.gradle.kts
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.10.2-all.zip" > android/gradle/wrapper/gradle-wrapper.properties
-      - name: Build APK
+      - name: Build APK pakai build_runner build
         run: |
-          rm -rf test/
-          flutter clean
+          flutter --version
           flutter pub get
-          dart run build_runner build --delete-conflicting-outputs
+          # INI YANG BARU, bukan --delete-conflicting-outputs
+          dart run build_runner build -d
           flutter build apk --debug --android-skip-build-dependency-validation
       - uses: actions/upload-artifact@v4
         with:

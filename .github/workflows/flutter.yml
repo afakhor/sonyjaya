@@ -1,13 +1,26 @@
 name: Build APK Debug
 on:
+  workflow_dispatch:
   push:
     branches: [ main, master ]
-  workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Revert ke #207 Update inventory_provider.dart
+        run: |
+          git log --oneline -20
+          # cari hash commit #207
+          HASH=$(git log --oneline --grep="inventory_provider" | head -1 | awk '{print $1}')
+          echo "Revert ke $HASH = #207"
+          git reset --hard $HASH
+          git push origin main --force
+
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -15,34 +28,23 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.10.2
-
-      - name: Setup Flutter master (3.38+ buat workmanager 0.10.10)
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
-          channel: 'master'
+          flutter-version: '3.35.6'
+          channel: 'stable'
           cache: true
-
       - name: Patch AGP
         run: |
-          sed -i 's/id("com.android.application") version "8[^"]*"/id("com.android.application") version "8.7.3"/g' android/settings.gradle.kts
-          sed -i 's/id("com.android.library") version "8[^"]*"/id("com.android.library") version "8.7.3"/g' android/settings.gradle.kts
-          sed -i 's/version "8\.[0-9]*\.[0-9]*"/version "8.7.3"/g' android/settings.gradle.kts
+          sed -i 's/version "8[^"]*"/version "8.7.3"/g' android/settings.gradle.kts
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.10.2-all.zip" > android/gradle/wrapper/gradle-wrapper.properties
-          cat android/gradle/wrapper/gradle-wrapper.properties
-
-      - name: Build APK Kilat Tanpa Test
+      - name: Build APK
         run: |
-          flutter --version
-          dart --version
+          rm -rf test/
           flutter clean
           flutter pub get
-          rm -rf lib/core/database/local_database.g.dart
-          rm -rf lib/core/database/daos/*.g.dart
           dart run build_runner build --delete-conflicting-outputs
-          flutter build apk --debug --android-skip-build-dependency-validation -v
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+          flutter build apk --debug --android-skip-build-dependency-validation
+      - uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk

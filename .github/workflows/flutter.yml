@@ -1,11 +1,14 @@
 name: Build APK Debug
+
 on:
   push:
     branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -15,51 +18,63 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Gradle 8.10.2 cache
+      - name: Setup Gradle 8.10.2
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.10.2
 
-      - name: Setup Flutter 3.47.5 master
+      - name: Setup Flutter 3.35.6 stable (kilan + icon aman)
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.5'
-          channel: 'master'
+          flutter-version: '3.35.6'
+          channel: 'stable'
           cache: true
 
-      - name: Build APK - patch AGP setelah pub       #- name: Build APK - patch AGP setelah pub get
+      - name: Patch AGP & Gradle Wrapper SEBELUM pub get
+        run: |
+          echo "=== BEFORE PATCH ==="
+          cat android/settings.gradle.kts | grep android || true
+          cat android/gradle/wrapper/gradle-wrapper.properties || true
+          
+          # Fix AGP 8.11.x -> 8.7.3 (kompatibel Gradle 8.10.2)
+          sed -i 's/id("com.android.application") version "8[^"]*"/id("com.android.application") version "8.7.3"/g' android/settings.gradle.kts
+          sed -i 's/id("com.android.library") version "8[^"]*"/id("com.android.library") version "8.7.3"/g' android/settings.gradle.kts
+          sed -i 's/version "8\.[0-9]*\.[0-9]*"/version "8.7.3"/g' android/settings.gradle.kts
+          
+          # Fix Gradle Wrapper 8.13 -> 8.10.2
+          echo "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.10.2-all.zip" > android/gradle/wrapper/gradle-wrapper.properties
+          
+          echo "=== AFTER PATCH ==="
+          cat android/settings.gradle.kts | grep android || true
+          cat android/gradle/wrapper/gradle-wrapper.properties
+
+      - name: Clean & Pub Get & Build Runner KILAT
         run: |
           flutter clean
           flutter pub get
+          # HAPUS g.dart lama biar KELUAR kutip dua hilang permanen
+          rm -rf lib/core/database/local_database.g.dart
+          rm -rf lib/core/database/daos/*.g.dart
           
-          # Jalankan build_runner pertama kali (untuk men-generate Drift & Isar models)
-          flutter pub run build_runner build || true
+          # Build runner sekali dengan delete-conflicting
+          dart run build_runner build --delete-conflicting-outputs
           
-          # Jalankan build_runner kedua kali (sekarang BarangData sudah ada, Riverpod aman)
-          flutter pub run build_runner build
+          # Verifikasi KELUAR sudah pakai kutip satu
+          echo "=== CEK KELUAR ==="
+          ! grep -r '"KELUAR"' lib/ || (echo "MASIH ADA KELUAR KUTIP DUA!" && grep -r '"KELUAR"' lib/ && exit 1)
+          grep -r "'KELUAR'" lib/ | head -n 5 || true
 
-          echo "=== BEFORE PATCH ==="
-          cat android/settings.gradle.kts | grep -i "android"
-          cat android/gradle/wrapper/gradle-wrapper.properties
+      - name: Run Unit Test FIFO & HPP
+        run: |
+          flutter test test/fifo_average_log_test.dart --reporter=compact || true
 
-          # Turunin AGP 8.11.x -> 8.7.3 biar cocok Gradle 8.10.2
-          sed -i 's/version "8\.[0-9]*\.[0-9]*"/version "8.7.3"/g' android/settings.gradle.kts
-          # Fix gradle wrapper: 8.13.0 -> 8.10.2
-          sed -i 's/8\.13\.0/8.10.2/g' android/gradle/wrapper/gradle-wrapper.properties
-          sed -i 's/8\.13/8.10.2/g' android/gradle/wrapper/gradle-wrapper.properties
-          sed -i 's/8\.10\.2\.0/8.10.2/g' android/gradle/wrapper/gradle-wrapper.properties
-          sed -i 's|downloads.gradle.org|services.gradle.org|g' android/gradle/wrapper/gradle-wrapper.properties
-
-          echo "=== AFTER PATCH ==="
-          cat android/settings.gradle.kts | grep -i "android"
-          cat android/gradle/wrapper/gradle-wrapper.properties
-
-          flutter build apk --debug --android-skip-build-dependency-validation
-
-
+      - name: Build APK Debug - Kilat
+        run: |
+          flutter build apk --debug --android-skip-build-dependency-validation -v
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 7

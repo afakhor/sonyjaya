@@ -15,23 +15,32 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.10.2
-      - name: Setup Flutter 3.38.1 beta
+
+      - name: Setup Flutter master (3.38+ buat workmanager 0.10.10)
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.38.1'
-          channel: 'beta'
+          channel: 'master'
           cache: true
+
       - name: Patch AGP
         run: |
-          sed -i 's/version "8[^"]*"/version "8.7.3"/g' android/settings.gradle.kts
+          sed -i 's/id("com.android.application") version "8[^"]*"/id("com.android.application") version "8.7.3"/g' android/settings.gradle.kts
+          sed -i 's/id("com.android.library") version "8[^"]*"/id("com.android.library") version "8.7.3"/g' android/settings.gradle.kts
+          sed -i 's/version "8\.[0-9]*\.[0-9]*"/version "8.7.3"/g' android/settings.gradle.kts
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.10.2-all.zip" > android/gradle/wrapper/gradle-wrapper.properties
+          cat android/gradle/wrapper/gradle-wrapper.properties
+
       - name: Build APK Kilat Tanpa Test
         run: |
+          flutter --version
+          dart --version
           flutter clean
           flutter pub get
           rm -rf lib/core/database/local_database.g.dart
+          rm -rf lib/core/database/daos/*.g.dart
           dart run build_runner build --delete-conflicting-outputs
-          flutter build apk --debug --android-skip-build-dependency-validation
+          flutter build apk --debug --android-skip-build-dependency-validation -v
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:

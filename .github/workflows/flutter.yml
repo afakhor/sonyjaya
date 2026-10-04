@@ -48,21 +48,18 @@ jobs:
           cat android/settings.gradle.kts | grep android || true
           cat android/gradle/wrapper/gradle-wrapper.properties
 
-      - name: Clean & Pub Get & Build Runner KILAT
-        run: |
-          flutter clean
-          flutter pub get
-          # HAPUS g.dart lama biar KELUAR kutip dua hilang permanen
-          rm -rf lib/core/database/local_database.g.dart
-          rm -rf lib/core/database/daos/*.g.dart
-          
-          # Build runner sekali dengan delete-conflicting
-          dart run build_runner build --delete-conflicting-outputs
-          
-          # Verifikasi KELUAR sudah pakai kutip satu
-          echo "=== CEK KELUAR ==="
-          ! grep -r '"KELUAR"' lib/ || (echo "MASIH ADA KELUAR KUTIP DUA!" && grep -r '"KELUAR"' lib/ && exit 1)
-          grep -r "'KELUAR'" lib/ | head -n 5 || true
+    - name: Clean & Pub Get & Build Runner KILAT
+  run: |
+    flutter --version
+    dart --version
+    flutter clean
+    flutter pub get
+    rm -rf lib/core/database/local_database.g.dart
+    rm -rf lib/core/database/daos/*.g.dart
+    dart run build_runner build --delete-conflicting-outputs
+    
+    echo "=== CEK KELUAR ==="
+    ! grep -r '"KELUAR"' lib/ || (echo "MASIH ADA KUTIP DUA!" && exit 1)
 
       - name: Run Unit Test FIFO & HPP
         run: |

@@ -20,7 +20,7 @@ dependencies:
   riverpod_annotation: ^3.0.0
 
   # Otot Background - fix buat 3.47.5
-  workmanager: ^0.8.1 #ganti untuk flutter 3.47.5
+  workmanager: ^0.9.0 #ganti untuk flutter 3.47.5
 
   # Cache Cepat
   isar_community: ^3.3.2

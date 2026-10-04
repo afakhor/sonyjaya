@@ -23,7 +23,7 @@ jobs:
         with:
           gradle-version: 8.10.2
 
-      - name: Setup Flutter 3.35.6 stable (kilan + icon aman)
+      - name: Setup Flutter 3.35.6 stable
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.35.6'
@@ -36,30 +36,28 @@ jobs:
           cat android/settings.gradle.kts | grep android || true
           cat android/gradle/wrapper/gradle-wrapper.properties || true
           
-          # Fix AGP 8.11.x -> 8.7.3 (kompatibel Gradle 8.10.2)
           sed -i 's/id("com.android.application") version "8[^"]*"/id("com.android.application") version "8.7.3"/g' android/settings.gradle.kts
           sed -i 's/id("com.android.library") version "8[^"]*"/id("com.android.library") version "8.7.3"/g' android/settings.gradle.kts
           sed -i 's/version "8\.[0-9]*\.[0-9]*"/version "8.7.3"/g' android/settings.gradle.kts
           
-          # Fix Gradle Wrapper 8.13 -> 8.10.2
-          echo "distributionUrl=https\\://services.gradle.org/distributions/gradle-8.10.2-all.zip" > android/gradle/wrapper/gradle-wrapper.properties
+          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.10.2-all.zip" > android/gradle/wrapper/gradle-wrapper.properties
           
           echo "=== AFTER PATCH ==="
           cat android/settings.gradle.kts | grep android || true
           cat android/gradle/wrapper/gradle-wrapper.properties
 
-    - name: Clean & Pub Get & Build Runner KILAT
-  run: |
-    flutter --version
-    dart --version
-    flutter clean
-    flutter pub get
-    rm -rf lib/core/database/local_database.g.dart
-    rm -rf lib/core/database/daos/*.g.dart
-    dart run build_runner build --delete-conflicting-outputs
-    
-    echo "=== CEK KELUAR ==="
-    ! grep -r '"KELUAR"' lib/ || (echo "MASIH ADA KUTIP DUA!" && exit 1)
+      - name: Clean & Pub Get & Build Runner KILAT
+        run: |
+          flutter --version
+          dart --version
+          flutter clean
+          flutter pub get
+          rm -rf lib/core/database/local_database.g.dart
+          rm -rf lib/core/database/daos/*.g.dart
+          dart run build_runner build --delete-conflicting-outputs
+          echo "=== CEK KELUAR ==="
+          ! grep -r '"KELUAR"' lib/ || (echo "MASIH ADA KUTIP DUA!" && exit 1)
+          echo "KELUAR aman pakai kutip satu"
 
       - name: Run Unit Test FIFO & HPP
         run: |
@@ -67,7 +65,7 @@ jobs:
 
       - name: Build APK Debug - Kilat
         run: |
-          flutter build apk --debug --android-skip-build-dependency-validation -v
+          flutter build apk --debug --android-skip-build-dependency-validation
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

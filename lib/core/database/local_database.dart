@@ -5,7 +5,7 @@ import 'daos/transaksi_dao.dart';
 import 'daos/laporan_dao.dart';
 import 'daos/po_dao.dart';
 import 'daos/satuan_dao.dart';
-import 'daos/supplier_dao.dart'; // TAMBAHAN BARU
+import 'daos/supplier_dao.dart';
 
 part 'local_database.g.dart';
 
@@ -48,7 +48,7 @@ class Penjualan extends Table {
 class KartuStok extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get barangId => integer().customConstraint('NOT NULL REFERENCES barang(id) ON DELETE CASCADE')();
-  TextColumn get tipe => text()();
+  TextColumn get tipe => text()(); // MASUK / KELUAR / KOREKSI_HPP
   IntColumn get qty => integer()();
   IntColumn get qtySisaLog => integer().withDefault(const Constant(0))();
   IntColumn get stokAkhir => integer()();
@@ -99,7 +99,6 @@ class PurchaseOrderItems extends Table {
   RealColumn get hppSaatTransaksi => real()();
 }
 
-// === TABLE BARU - MERGE DARI FITUR SUPPLIER ===
 class Supplier extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get nama => text().unique()();
@@ -117,10 +116,12 @@ class LocalDatabase extends _$LocalDatabase {
   LocalDatabase._internal() : super(driftDatabase(name: 'sony_jaya_hpp_v5'));
   static final LocalDatabase _instance = LocalDatabase._internal();
   factory LocalDatabase() => _instance;
+
+  // UNTUK TEST KILAT - CUKUP 1 INI, JANGAN DUPLIKAT DI LUAR
   LocalDatabase.forTesting(super.e);
-  
+
   @override
-  int get schemaVersion => 6; // NAIK DARI 5 KE 6 BIAR MIGRASI JALAN
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -137,7 +138,7 @@ class LocalDatabase extends _$LocalDatabase {
         await m.createAll();
       }
       if (from < 6) {
-        await m.createTable(supplier); // MIGRASI KHUSUS SUPPLIER
+        await m.createTable(supplier);
       }
     },
     beforeOpen: (details) async {
@@ -147,9 +148,7 @@ class LocalDatabase extends _$LocalDatabase {
   );
 }
 
-// UNTUK TEST KILAT
-LocalDatabase.forTesting(QueryExecutor e) : super(e);
-// === COMPAT LAYER - BOLEH NAMBAH, JANGAN HAPUS LOGIKA ===
+// COMPAT LAYER
 extension BarangDataCompat on BarangData {
   String? get satuanKecil => satuanTerkecil;
   String? get satuan => satuanBesar;
@@ -160,6 +159,5 @@ extension PurchaseOrderCompat on PurchaseOrder {
   DateTime get tanggalBuat => tanggalPo;
 }
 
-// Alias untuk kode lama yang masih manggil PurchaseOrderData
 typedef PurchaseOrderData = PurchaseOrder;
 typedef PurchaseOrdersData = PurchaseOrder;

@@ -116,8 +116,6 @@ class LocalDatabase extends _$LocalDatabase {
   LocalDatabase._internal() : super(driftDatabase(name: 'sony_jaya_hpp_v5'));
   static final LocalDatabase _instance = LocalDatabase._internal();
   factory LocalDatabase() => _instance;
-
-  // UNTUK TEST KILAT - CUKUP 1 INI, JANGAN DUPLIKAT DI LUAR
   LocalDatabase.forTesting(super.e);
 
   @override
@@ -148,7 +146,6 @@ class LocalDatabase extends _$LocalDatabase {
   );
 }
 
-// COMPAT LAYER
 extension BarangDataCompat on BarangData {
   String? get satuanKecil => satuanTerkecil;
   String? get satuan => satuanBesar;

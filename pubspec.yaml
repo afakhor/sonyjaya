@@ -16,8 +16,8 @@ dependencies:
   drift_flutter: ^0.2.7
 
   # Saraf super Reaktif - NAIK KE 3.x biar source_gen 4.x
-  flutter_riverpod: ^3.0.0
-  riverpod_annotation: ^3.0.0
+  flutter_riverpod: ^3.0.4
+  riverpod_annotation: ^3.0.4
 
   # Otot Background - fix buat 3.47.5
   workmanager: ^0.10.10 #ganti untuk flutter 3.47.5
@@ -39,7 +39,13 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   drift_dev: ^2.28.2
-  build_runner: ^2.7.0
-  riverpod_generator: ^3.0.0 # <- NAIK dari 2.6.5 ke 3.0.0 biar source_gen ^4.0.0
+  build_runner: ^2.10.0 # <- FIX dari ^2.7.0 biar support analyzer 13 di Dart 3.14
+  riverpod_generator: ^4.0.4 # <- FIX dari ^3.0.0 biar support analyzer 13
   isar_community_generator: ^3.3.2
-  flutter_lints: ^4.0.0
+  custom_lint: ^0.8.0 # <- FIX butuh buat riverpod_lint 3.x
+  riverpod_lint: ^3.0.4 # <- FIX biar lint sinkron sama riverpod 3.x
+  flutter_lints: ^6.0.0 # <- FIX dari ^4.0.0 biar support Dart 3.14
+
+# FIX conflict analyzer 7 vs 13 di Dart 3.14.0-294.0.dev
+dependency_overrides:
+  analyzer: ^13.0.0

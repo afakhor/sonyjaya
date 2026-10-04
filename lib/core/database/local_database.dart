@@ -147,6 +147,8 @@ class LocalDatabase extends _$LocalDatabase {
   );
 }
 
+// UNTUK TEST KILAT
+LocalDatabase.forTesting(QueryExecutor e) : super(e);
 // === COMPAT LAYER - BOLEH NAMBAH, JANGAN HAPUS LOGIKA ===
 extension BarangDataCompat on BarangData {
   String? get satuanKecil => satuanTerkecil;

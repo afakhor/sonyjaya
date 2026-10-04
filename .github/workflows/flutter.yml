@@ -15,10 +15,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.10.2
-      - name: Setup Flutter master (buat workmanager 0.10.10)
+      # UBAH NAMA DAN CHANNEL MENJADI STABLE DI SINI
+      - name: Setup Flutter Stable
         uses: subosito/flutter-action@v2
         with:
-          channel: 'master'
+          channel: 'stable' # <--- Ini yang paling penting, ubah dari master ke stable
           cache: true
       - name: Patch AGP
         run: |
@@ -28,7 +29,6 @@ jobs:
         run: |
           flutter --version
           flutter pub get
-          # INI YANG BARU, bukan --delete-conflicting-outputs
           dart run build_runner build -d
           flutter build apk --debug --android-skip-build-dependency-validation
       - uses: actions/upload-artifact@v4

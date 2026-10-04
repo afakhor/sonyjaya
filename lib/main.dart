@@ -46,7 +46,7 @@ class SonyJayaApp extends StatelessWidget {
   const SonyJayaApp({super.key});
   @override Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Sony Jaya iPOS',
+      title: 'Sony Jaya',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,

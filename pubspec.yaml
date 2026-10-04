@@ -46,6 +46,6 @@ dev_dependencies:
   custom_lint: ^0.8.0
   riverpod_lint: ^3.0.0
 
-dependency_overrides:
-  analyzer: ^8.4.1
-  dart_style: ^3.1.20
+# dependency_overrides:
+#   analyzer: ^8.4.1   # Dihapus karena Dart 3.14+ butuh analyzer 14.x
+#   dart_style: ^3.1.20 # Dihapus karena versi ini belum ada di pub.dev

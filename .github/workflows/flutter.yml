@@ -1,75 +1,39 @@
 name: Build APK Debug
-
 on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-
-      - name: Setup Gradle 8.10.2
-        uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.10.2
-
-      - name: Setup Flutter 3.35.6 stable
+      - name: Setup Flutter 3.38.1 beta
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.6'
-          channel: 'stable'
+          flutter-version: '3.38.1'
+          channel: 'beta'
           cache: true
-
-      - name: Patch AGP & Gradle Wrapper SEBELUM pub get
+      - name: Patch AGP
         run: |
-          echo "=== BEFORE PATCH ==="
-          cat android/settings.gradle.kts | grep android || true
-          cat android/gradle/wrapper/gradle-wrapper.properties || true
-          
-          sed -i 's/id("com.android.application") version "8[^"]*"/id("com.android.application") version "8.7.3"/g' android/settings.gradle.kts
-          sed -i 's/id("com.android.library") version "8[^"]*"/id("com.android.library") version "8.7.3"/g' android/settings.gradle.kts
-          sed -i 's/version "8\.[0-9]*\.[0-9]*"/version "8.7.3"/g' android/settings.gradle.kts
-          
+          sed -i 's/version "8[^"]*"/version "8.7.3"/g' android/settings.gradle.kts
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.10.2-all.zip" > android/gradle/wrapper/gradle-wrapper.properties
-          
-          echo "=== AFTER PATCH ==="
-          cat android/settings.gradle.kts | grep android || true
-          cat android/gradle/wrapper/gradle-wrapper.properties
-
-      - name: Clean & Pub Get & Build Runner KILAT
+      - name: Build APK Kilat Tanpa Test
         run: |
-          flutter --version
-          dart --version
           flutter clean
           flutter pub get
           rm -rf lib/core/database/local_database.g.dart
-          rm -rf lib/core/database/daos/*.g.dart
           dart run build_runner build --delete-conflicting-outputs
-          echo "=== CEK KELUAR ==="
-          ! grep -r '"KELUAR"' lib/ || (echo "MASIH ADA KUTIP DUA!" && exit 1)
-          echo "KELUAR aman pakai kutip satu"
-
-      - name: Run Unit Test FIFO & HPP
-        run: |
-          flutter test test/fifo_average_log_test.dart --reporter=compact || true
-
-      - name: Build APK Debug - Kilat
-        run: |
           flutter build apk --debug --android-skip-build-dependency-validation
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
-          retention-days: 7

@@ -48,7 +48,6 @@ class TransaksiDao extends DatabaseAccessor<LocalDatabase> with _$TransaksiDaoMi
       final stokBaru = barang.stok-qtyPcs;
       final laba = (hargaJualPerSatuanInput*qtyInput)-(barang.hppAverage*qtyPcs);
       await (update(db.barang)..where((b)=>b.id.equals(barangId))).write(BarangCompanion(stok: Value(stokBaru), updatedAt: Value(DateTime.now())));
-      // FIX: hppSnapshot & laba harus pakai Value()
       final idJual = await into(db.penjualan).insert(PenjualanCompanion.insert(barangId: barangId, qtyPcs: qtyPcs, hargaJualPerPcs: hargaPerPcs, hppSnapshot: Value(barang.hppAverage), laba: Value(laba), tipe: Value(tipe)));
       await into(db.kartuStok).insert(KartuStokCompanion.insert(barangId: barangId, tipe: 'KELUAR', qty: -qtyPcs, stokAkhir: stokBaru, refId: Value('JUAL-$idJual')));
     });
@@ -65,7 +64,6 @@ class TransaksiDao extends DatabaseAccessor<LocalDatabase> with _$TransaksiDaoMi
       final selisih = stokFisik-barang.stok;
       if(selisih==0) return;
       await (update(db.barang)..where((b)=>b.id.equals(barangId))).write(BarangCompanion(stok: Value(stokFisik), updatedAt: Value(DateTime.now())));
-      // FIX: hppSaatOpname pakai Value()
       await into(db.stockOpname).insert(StockOpnameCompanion.insert(barangId: barangId, stokSistem: barang.stok, stokFisik: stokFisik, selisih: selisih, hppSaatOpname: Value(barang.hppAverage), keterangan: Value(keterangan??'Opname')));
       await into(db.kartuStok).insert(KartuStokCompanion.insert(barangId: barangId, tipe: selisih>0?'OPNAME_MASUK':'OPNAME_KELUAR', qty: selisih.abs(), qtySisaLog: Value(selisih>0?selisih:0), stokAkhir: stokFisik, hargaBeliSaatItu: Value(barang.hppAverage), refId: Value('OPNAME-${DateTime.now().millisecondsSinceEpoch}')));
     });

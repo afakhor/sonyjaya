@@ -22,7 +22,6 @@ class PiutangSummary {
 
 final piutangListProvider = StreamProvider.autoDispose<List<PiutangSummary>>((ref) {
   final db = ref.watch(localDbProvider);
-  // FIX: pakai isIn, bukan | atau .or()
   return (db.select(db.pelangganPiutang)
     ..where((p) => p.statusBayar.isIn(['BELUM_LUNAS', 'CICIL'])))
       .watch().map((allPiutang) {

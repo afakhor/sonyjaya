@@ -7,14 +7,22 @@ class PiutangDao extends DatabaseAccessor<LocalDatabase> with _$PiutangDaoMixin 
   PiutangDao(super.db);
 
   Future<void> createPiutang({int? penjualanId, required String pelangganNama, required double total, required int topDays, required DateTime jatuhTempo, String? keterangan, String noNota=''}) async {
-    await into(pelangganPiutang).insert(PelangganPiutangCompanion.insert(noNota: noNota.isEmpty? 'NOTA-${DateTime.now().millisecondsSinceEpoch}' : noNota, pelangganNama: pelangganNama, totalTagihan: total, sisaPiutang: total, topDays: Value(topDays), tanggalNota: Value(DateTime.now()), jatuhTempo: jatuhTempo, keterangan: Value(keterangan)));
+    await into(pelangganPiutang).insert(PelangganPiutangCompanion.insert(
+      noNota: noNota.isEmpty? 'NOTA-${DateTime.now().millisecondsSinceEpoch}' : noNota,
+      pelangganNama: pelangganNama,
+      totalTagihan: total,
+      sisaPiutang: total,
+      topDays: Value(topDays),
+      tanggalNota: Value(DateTime.now()),
+      jatuhTempo: jatuhTempo,
+      keterangan: Value(keterangan)
+    ));
     final aktif = await _getPiutangAktif(pelangganNama);
     await (update(pelangganMaster)..where((p)=>p.nama.equals(pelangganNama))).write(PelangganMasterCompanion(totalPiutangAktif: Value(aktif)));
   }
 
   Future<double> _getPiutangAktif(String nama) async {
-    // FIX: pakai | bukan .or()
-    final list = await (select(pelangganPiutang)..where((p)=>p.pelangganNama.equals(nama))..where((p)=> p.statusBayar.equals('BELUM_LUNAS') | p.statusBayar.equals('CICIL'))).get();
+    final list = await (select(pelangganPiutang)..where((p)=>p.pelangganNama.equals(nama))..where((p)=>p.statusBayar.isIn(['BELUM_LUNAS','CICIL']))).get();
     return list.fold<double>(0,(s,e)=> s+e.sisaPiutang);
   }
 
@@ -31,7 +39,7 @@ class PiutangDao extends DatabaseAccessor<LocalDatabase> with _$PiutangDaoMixin 
     });
   }
 
-  Stream<List<PelangganPiutangData>> watchPrioritasTagih() => (select(pelangganPiutang)..where((p)=> p.statusBayar.equals('BELUM_LUNAS') | p.statusBayar.equals('CICIL'))).watch().map((list){
+  Stream<List<PelangganPiutangData>> watchPrioritasTagih() => (select(pelangganPiutang)..where((p)=>p.statusBayar.isIn(['BELUM_LUNAS','CICIL']))).watch().map((list){
     list.sort((a,b){
       final lewatA = DateTime.now().difference(a.jatuhTempo).inDays;
       final lewatB = DateTime.now().difference(b.jatuhTempo).inDays;

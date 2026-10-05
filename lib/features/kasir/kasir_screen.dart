@@ -12,7 +12,6 @@ class KasirScreen extends ConsumerStatefulWidget {
 class _KasirScreenState extends ConsumerState<KasirScreen> {
   final searchCtrl = TextEditingController();
   FilterKategoriHarga filter = FilterKategoriHarga.semua;
-  // simpan controller qty per barang biar angka gak hilang
   final Map<int, TextEditingController> qtyControllers = {};
 
   @override void dispose(){
@@ -34,7 +33,6 @@ class _KasirScreenState extends ConsumerState<KasirScreen> {
             tooltip: 'Clear filter',
             onPressed: (){
               setState((){ searchCtrl.clear(); filter = FilterKategoriHarga.semua; });
-              ref.read(searchQueryProvider.notifier).state='';
             },
             icon: const Icon(Icons.delete_sweep_rounded),
           ),
@@ -45,7 +43,7 @@ class _KasirScreenState extends ConsumerState<KasirScreen> {
           Padding(padding: const EdgeInsets.all(10), child: TextField(
             controller: searchCtrl,
             decoration: const InputDecoration(prefixIcon: Icon(Icons.search_rounded), hintText: 'nama / sku / merek', border: OutlineInputBorder()),
-            onChanged: (v)=> ref.read(searchQueryProvider.notifier).state=v,
+            onChanged: (v)=> setState((){}),
           )),
           SingleChildScrollView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal:10), child: Row(children: FilterKategoriHarga.values.map((f){
             final sel = filter==f;
@@ -73,10 +71,7 @@ class _KasirScreenState extends ConsumerState<KasirScreen> {
                   ]),
                   Text('SKU ${b.sku??'-'} | HPP Rp ${b.hppAverage.toStringAsFixed(0)}', style: TextStyle(fontSize:11, color: Colors.grey.shade600)),
                   const SizedBox(height:10),
-
-                  // ===== FIX BIRU - GEDE & JELAS FUNGSINYA =====
                   Row(crossAxisAlignment: CrossAxisAlignment.end, children:[
-                    // QTY INPUT ANGKA GEDE
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children:[
                       const Text('QTY', style: TextStyle(fontSize:10, fontWeight: FontWeight.bold, color: Colors.grey)),
                       const SizedBox(height:2),
@@ -85,15 +80,10 @@ class _KasirScreenState extends ConsumerState<KasirScreen> {
                         keyboardType: TextInputType.number,
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontWeight: FontWeight.w800, fontSize:16),
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(vertical:12),
-                        ),
+                        decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), isDense: true, contentPadding: const EdgeInsets.symmetric(vertical:12)),
                       )),
                     ]),
                     const SizedBox(width:8),
-                    // TOMBOL ECER GEDE
                     Expanded(child: SizedBox(height: 48, child: ElevatedButton(
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), padding: const EdgeInsets.symmetric(horizontal:4)),
                       onPressed: (){
@@ -107,7 +97,6 @@ class _KasirScreenState extends ConsumerState<KasirScreen> {
                       ]),
                     ))),
                     const SizedBox(width:6),
-                    // TOMBOL AGEN GEDE
                     Expanded(child: SizedBox(height: 48, child: OutlinedButton(
                       style: OutlinedButton.styleFrom(side: BorderSide(color: Colors.grey.shade400), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), padding: const EdgeInsets.symmetric(horizontal:4)),
                       onPressed: (){
@@ -128,7 +117,6 @@ class _KasirScreenState extends ConsumerState<KasirScreen> {
             error: (e,_ )=> Center(child: Text('Error $e')),
           )),
         ])),
-        // KANAN KERANJANG
         Expanded(flex: 2, child: Container(decoration: BoxDecoration(border: Border(left: BorderSide(color: Colors.grey.shade300)), color: Colors.grey.shade50), child: Column(children:[
           Padding(padding: const EdgeInsets.all(10), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children:[const Text('Keranjang', style: TextStyle(fontWeight: FontWeight.bold)), Text('${cart.length} item')])),
           Expanded(child: cart.isEmpty? const Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children:[Icon(Icons.shopping_cart_outlined, size:40, color: Colors.grey), SizedBox(height:8), Text('Keranjang kosong', style: TextStyle(color: Colors.grey))])) : ListView.builder(itemCount: cart.length, itemBuilder: (c,i){
@@ -142,7 +130,7 @@ class _KasirScreenState extends ConsumerState<KasirScreen> {
             SizedBox(width: double.infinity, height: 52, child: ElevatedButton(
               onPressed: total<=0? null : () async {
                 await ref.read(cartProvider.notifier).checkout();
-                if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Transaksi Rp ${total.toStringAsFixed(0)} berhasil!')));
+                if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Transaksi Rp ${total.toStringAsFixed(0)} berhasil! Cek Laba & Piutang sekarang ada')));
               },
               style: ElevatedButton.styleFrom(backgroundColor: total>0? Colors.black : Colors.grey.shade400, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
               child: const Text('PROSES PEMBAYARAN', style: TextStyle(fontWeight: FontWeight.w800, fontSize:14)),
@@ -153,5 +141,3 @@ class _KasirScreenState extends ConsumerState<KasirScreen> {
     );
   }
 }
-
-enum FilterKategoriHarga { semua, ecer, agen, marginTinggi }

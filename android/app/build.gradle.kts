@@ -1,13 +1,12 @@
 plugins {
     id("com.android.application")
     id("kotlin-android")
-    // HAPUS flutter-plugin-loader dari sini karena diatur di settings.gradle.kts oleh Gradle baru
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
     namespace = "com.example.sonyjaya"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = "28.2.13676358"
 
     compileOptions {
@@ -22,7 +21,7 @@ android {
     defaultConfig {
         applicationId = "com.example.sonyjaya"
         minSdk = 23
-        targetSdk = 35
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -30,12 +29,14 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = true
-            pickFirsts += listOf("**/libsqlite3.so", "**/libsqlite.so")
+            pickFirsts += listOf("**/libsqlite3.so", "**/libsqlite.so", "**/libsqlcipher.so")
         }
     }
 
     buildTypes {
         release {
+            // Untuk release APK internal, pakai debug keystore dulu biar bisa ke-install
+            // Nanti kalau mau Play Store, ganti ke signingConfigs.release
             signingConfig = signingConfigs.getByName("debug")
         }
     }

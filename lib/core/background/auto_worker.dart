@@ -27,10 +27,8 @@ void callbackDispatcher() {
         bulk.add(FastStockCache()..barangId=b.id..nama=b.nama..sku=b.sku??''..stok=b.stok..safetyStock=dynamicSafety..hppAverage=b.hppAverage..tor=tor..isFastMoving=tor>2.5..perluReorder=b.stok<=dynamicSafety..lastUpdated=DateTime.now());
       }
       await IsarService.bulkSync(bulk);
-      final jual = await db.customSelect('SELECT SUM(laba) as total FROM penjualan WHERE tanggal >=?', variables: [Variable.withDateTime(DateTime.now().subtract(const Duration(days:1)))],).getSingle();
-      log('💰 LABA 24J: Rp ${jual.data['total']??0}');
       return Future.value(true);
-    } catch(e,st){ log("❌ Error Worker: $e", error:e, stackTrace:st); return Future.value(false); }
+    } catch(e,st){ log("❌ Worker: $e", error:e, stackTrace:st); return Future.value(false); }
   });
 }
 
@@ -42,8 +40,13 @@ class AutoWorker {
         'sony-jaya-auto-control-task',
         'sony-jaya-auto-control',
         frequency: const Duration(hours:6),
-        constraints: Constraints(networkType: NetworkType.notRequired, requiresCharging: false, requiresDeviceIdle: false),
-        existingPeriodicWorkPolicy: ExistingPeriodicWorkPolicy.replace,
+        constraints: Constraints(
+          networkType: NetworkType.notRequired,
+          requiresCharging: false,
+          requiresDeviceIdle: false,
+        ),
+        // FIX FINAL: nama param existingWorkPolicy, value ExistingPeriodicWorkPolicy
+        existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
       );
     } catch(e){ log("Failed init: $e"); }
   }

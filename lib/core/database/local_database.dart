@@ -13,13 +13,19 @@ part 'local_database.g.dart';
 
 class Barang extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get nama => text()();
   TextColumn get sku => text().nullable()();
+  TextColumn get nama => text()();
+  TextColumn get merek => text().nullable()();
+  TextColumn get satuanTerkecil => text().withDefault(const Constant('Pcs'))();
+  TextColumn get satuanBesar => text().withDefault(const Constant('Set'))();
+  IntColumn get konversi => integer().withDefault(const Constant(1))();
   IntColumn get stok => integer().withDefault(const Constant(0))();
+  IntColumn get safetyStock => integer().withDefault(const Constant(2))();
   RealColumn get hppAverage => real().withDefault(const Constant(0))();
-  IntColumn get safetyStock => integer().withDefault(const Constant(10))();
-  TextColumn get satuan => text().withDefault(const Constant('PCS'))();
+  RealColumn get hargaEcer => real().withDefault(const Constant(0))();
+  RealColumn get hargaAgen => real().withDefault(const Constant(0))();
   TextColumn get supplier => text().nullable()();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
 class Supplier extends Table {
@@ -36,7 +42,7 @@ class PelangganMaster extends Table {
   TextColumn get nama => text().unique()();
   TextColumn get kontak => text().nullable()();
   TextColumn get alamat => text().nullable()();
-  TextColumn get status => text().withDefault(const Constant('PEMBELI'))(); // PEMBELI,PELANGGAN,TETAP,BADDEBT
+  TextColumn get status => text().withDefault(const Constant('PEMBELI'))();
   RealColumn get totalBelanja => real().withDefault(const Constant(0))();
   IntColumn get frekuensi => integer().withDefault(const Constant(0))();
   IntColumn get variasiBarang => integer().withDefault(const Constant(0))();
@@ -49,11 +55,27 @@ class PelangganMaster extends Table {
 class PurchaseOrders extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get noPo => text().unique()();
+  TextColumn get tipePo => text().withDefault(const Constant('VENDOR'))();
   TextColumn get namaRelasi => text()();
-  DateTimeColumn get tanggalPo => dateTime()();
-  RealColumn get totalKeseluruhan => real()();
-  TextColumn get statusBayar => text().withDefault(const Constant('LUNAS'))(); // LUNAS,BELUM_LUNAS,CICIL
+  TextColumn get kontakRelasi => text().nullable()();
+  TextColumn get alamatRelasi => text().nullable()();
+  DateTimeColumn get tanggalPo => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get estimasiKirim => dateTime().nullable()();
+  RealColumn get totalKeseluruhan => real().withDefault(const Constant(0))();
+  TextColumn get statusBayar => text().withDefault(const Constant('LUNAS'))();
+  TextColumn get statusPo => text().withDefault(const Constant('SELESAI'))();
   TextColumn get keterangan => text().nullable()();
+}
+
+class PurchaseOrderItems extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get poId => integer()();
+  IntColumn get barangId => integer()();
+  IntColumn get qty => integer()();
+  TextColumn get satuan => text().withDefault(const Constant('Pcs'))();
+  RealColumn get hargaSatuan => real()();
+  RealColumn get subtotal => real()();
+  RealColumn get hppSaatTransaksi => real().withDefault(const Constant(0))();
 }
 
 class PelangganPiutang extends Table {
@@ -65,7 +87,7 @@ class PelangganPiutang extends Table {
   RealColumn get totalDibayar => real().withDefault(const Constant(0))();
   RealColumn get sisaPiutang => real()();
   IntColumn get topDays => integer().withDefault(const Constant(14))();
-  DateTimeColumn get tanggalNota => dateTime()();
+  DateTimeColumn get tanggalNota => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get jatuhTempo => dateTime()();
   TextColumn get statusBayar => text().withDefault(const Constant('BELUM_LUNAS'))();
   DateTimeColumn get tanggalLunas => dateTime().nullable()();
@@ -81,15 +103,55 @@ class PembayaranPiutang extends Table {
   TextColumn get catatan => text().nullable()();
 }
 
-// table lama tetap
-class Pembelian extends Table { IntColumn get id => integer().autoIncrement()(); IntColumn get barangId => integer()(); IntColumn get qty => integer()(); RealColumn get hargaBeli => real()(); DateTimeColumn get tanggal => dateTime()(); TextColumn get supplier => text().nullable()(); TextColumn get noNota => text().nullable()(); }
-class Penjualan extends Table { IntColumn get id => integer().autoIncrement()(); IntColumn get barangId => integer()(); IntColumn get qty => integer()(); RealColumn get hargaJual => real()(); DateTimeColumn get tanggal => dateTime()(); TextColumn get pelanggan => text().nullable()(); }
-class KartuStok extends Table { IntColumn get id => integer().autoIncrement()(); IntColumn get barangId => integer()(); TextColumn get tipe => text()(); IntColumn get qty => integer()(); IntColumn get stokAkhir => integer()(); RealColumn get hargaBeliSaatItu => real().nullable()(); TextColumn get refId => text().nullable()(); DateTimeColumn get tanggal => dateTime().withDefault(currentDateAndTime)(); }
-class StockOpname extends Table { IntColumn get id => integer().autoIncrement()(); IntColumn get barangId => integer()(); IntColumn get stokSistem => integer()(); IntColumn get stokFisik => integer()(); TextColumn get keterangan => text().nullable()(); DateTimeColumn get tanggal => dateTime().withDefault(currentDateAndTime)(); }
-class Satuan extends Table { IntColumn get id => integer().autoIncrement()(); TextColumn get nama => text().unique()(); }
-class PurchaseOrderItems extends Table { IntColumn get id => integer().autoIncrement()(); IntColumn get poId => integer()(); IntColumn get barangId => integer()(); IntColumn get qty => integer()(); RealColumn get harga => real()(); }
+class Pembelian extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get barangId => integer()();
+  IntColumn get qtyPcs => integer()();
+  RealColumn get hargaBeliPerPcs => real()();
+  TextColumn get supplier => text().nullable()();
+  DateTimeColumn get tanggal => dateTime().withDefault(currentDateAndTime)();
+}
 
-@DriftDatabase(tables: [Barang,Supplier,PelangganMaster,PurchaseOrders,PelangganPiutang,PembayaranPiutang,Pembelian,Penjualan,KartuStok,StockOpname,Satuan,PurchaseOrderItems], daos: [BarangDao,TransaksiDao,LaporanDao,PoDao,SatuanDao,SupplierDao,PelangganMasterDao,PiutangDao])
+class Penjualan extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get barangId => integer()();
+  IntColumn get qtyPcs => integer()();
+  RealColumn get hargaJualPerPcs => real()();
+  RealColumn get hppSnapshot => real().withDefault(const Constant(0))();
+  RealColumn get laba => real().withDefault(const Constant(0))();
+  TextColumn get tipe => text().withDefault(const Constant('eceran'))();
+  DateTimeColumn get tanggal => dateTime().withDefault(currentDateAndTime)();
+}
+
+class KartuStok extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get barangId => integer()();
+  TextColumn get tipe => text()();
+  IntColumn get qty => integer()();
+  IntColumn get qtySisaLog => integer().withDefault(const Constant(0))();
+  IntColumn get stokAkhir => integer()();
+  RealColumn get hargaBeliSaatItu => real().nullable()();
+  TextColumn get refId => text().nullable()();
+  DateTimeColumn get tanggal => dateTime().withDefault(currentDateAndTime)();
+}
+
+class StockOpname extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get barangId => integer()();
+  IntColumn get stokSistem => integer()();
+  IntColumn get stokFisik => integer()();
+  IntColumn get selisih => integer()();
+  RealColumn get hppSaatOpname => real().withDefault(const Constant(0))();
+  TextColumn get keterangan => text().nullable()();
+  DateTimeColumn get tanggal => dateTime().withDefault(currentDateAndTime)();
+}
+
+class Satuan extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get namaSatuan => text().unique()();
+}
+
+@DriftDatabase(tables: [Barang,Supplier,PelangganMaster,PurchaseOrders,PurchaseOrderItems,PelangganPiutang,PembayaranPiutang,Pembelian,Penjualan,KartuStok,StockOpname,Satuan], daos: [BarangDao,TransaksiDao,LaporanDao,PoDao,SatuanDao,SupplierDao,PelangganMasterDao,PiutangDao])
 class LocalDatabase extends _$LocalDatabase {
   LocalDatabase() : super(driftDatabase(name: 'sony_jaya_v7'));
   @override int get schemaVersion => 7;

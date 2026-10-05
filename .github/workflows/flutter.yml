@@ -14,11 +14,31 @@ jobs:
         with: { gradle-version: 8.10.2 }
       - uses: subosito/flutter-action@v2
         with: { channel: 'stable', cache: true }
-      - name: Patch AGP + compileSdk 36
+      - name: Patch AGP + compileSdk 36 + Gradle Wrapper
         run: |
-          sed -i 's/compileSdk = 35/compileSdk = 36/g' android/app/build.gradle.kts || echo "android { compileSdk = 36 }" >> android/app/build.gradle.kts
-          sed -i 's/version "8[^"]*"/version "8.7.3"/g' android/settings.gradle.kts
-          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.10.2-all.zip" > android/gradle/wrapper/gradle-wrapper.properties
+          # 1. Patch compileSdk & targetSdk 35 -> 36 di app/build.gradle.kts
+          sed -i 's/compileSdk = 35/compileSdk = 36/g' android/app/build.gradle.kts
+          sed -i 's/targetSdk = 35/targetSdk = 36/g' android/app/build.gradle.kts
+          sed -i 's/compileSdk = 34/compileSdk = 36/g' android/app/build.gradle.kts || true
+          sed -i 's/targetSdk = 34/targetSdk = 36/g' android/app/build.gradle.kts || true
+          
+          # 2. Patch AGP version di settings.gradle.kts jadi 8.7.3
+          sed -i 's/id("com.android.application") version "[^"]*"/id("com.android.application") version "8.7.3"/g' android/settings.gradle.kts
+          sed -i 's/id("org.jetbrains.kotlin.android") version "[^"]*"/id("org.jetbrains.kotlin.android") version "2.1.20"/g' android/settings.gradle.kts
+          
+          # 3. Paksa Gradle wrapper 8.10.2-all (bukan bin) biar drift sqlite gak error
+          echo "distributionBase=GRADLE_USER_HOME" > android/gradle/wrapper/gradle-wrapper.properties
+          echo "distributionPath=wrapper/dists" >> android/gradle/wrapper/gradle-wrapper.properties
+          echo "zipStoreBase=GRADLE_USER_HOME" >> android/gradle/wrapper/gradle-wrapper.properties
+          echo "zipStorePath=wrapper/dists" >> android/gradle/wrapper/gradle-wrapper.properties
+          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.10.2-all.zip" >> android/gradle/wrapper/gradle-wrapper.properties
+          
+          echo "=== app/build.gradle.kts ==="
+          cat android/app/build.gradle.kts
+          echo "=== settings.gradle.kts ==="
+          cat android/settings.gradle.kts
+          echo "=== gradle-wrapper.properties ==="
+          cat android/gradle/wrapper/gradle-wrapper.properties
       - name: Build APK Release
         run: |
           flutter clean

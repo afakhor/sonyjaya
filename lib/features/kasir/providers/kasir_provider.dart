@@ -3,6 +3,7 @@ import '../../../core/database/local_database.dart';
 import '../../inventory/providers/inventory_provider.dart';
 
 enum TipeHarga { ecer, agen }
+enum FilterKategoriHarga { semua, ecer, agen, marginTinggi }
 
 class CartItem {
   final BarangData barang;
@@ -79,5 +80,3 @@ final cartTotalProvider = Provider<double>((ref){
   final cart = ref.watch(cartProvider);
   return cart.fold(0.0, (sum, e)=> sum + e.qty * e.hargaJual);
 });
-final searchQueryProvider = StateProvider<String>((ref)=> '');
-enum FilterKategoriHarga { semua, ecer, agen, marginTinggi }

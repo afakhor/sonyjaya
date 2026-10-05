@@ -1,4 +1,4 @@
-ort 'package:drift/drift.dart';
+import 'package:drift/drift.dart';
 import '../local_database.dart';
 part 'laporan_dao.g.dart';
 @DriftAccessor(tables: [Barang, Pembelian, Penjualan, KartuStok])

@@ -175,7 +175,8 @@ class _KasirScreenState extends ConsumerState<KasirScreen> {
                   ])),
                   const SizedBox(height:16),
                   SizedBox(width: double.infinity, height:48, child: ElevatedButton(onPressed: ()=> Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text("SELESAI - X"))),
-                ]))),
+                ])),
+                );
                 namaPembeliCtrl.clear();
                 setState(()=> topDays=0);
               },

@@ -32,6 +32,7 @@ class _KasirScreenState extends ConsumerState<KasirScreen> {
     final total = ref.watch(cartTotalProvider);
     final isWide = MediaQuery.of(context).size.width >= 800;
     final cartCount = cart.fold<int>(0, (s,i)=> s+i.qty);
+    final produkCount = barangList.maybeWhen(data: (l)=> l.length, orElse: ()=> 0);
 
     Widget leftPanel(){
       return Container(
@@ -45,7 +46,7 @@ class _KasirScreenState extends ConsumerState<KasirScreen> {
             const SizedBox(height:12),
             const Text("Produk", style: TextStyle(fontSize:28, fontWeight: FontWeight.w700, letterSpacing:-0.5, height:1)),
             const SizedBox(height:6),
-            Text("${barangList.valueOrNull?.length??0} produk • Stok terkelola", style: const TextStyle(fontSize:13, color: Color(0xFF9CA3AF))),
+            Text("$produkCount produk • Stok terkelola", style: const TextStyle(fontSize:13, color: Color(0xFF9CA3AF))),
             const SizedBox(height:24),
             TextField(
               controller: searchCtrl,
@@ -79,6 +80,7 @@ class _KasirScreenState extends ConsumerState<KasirScreen> {
             data: (list){
               var filtered = list.where((b)=> searchCtrl.text.isEmpty || b.nama.toLowerCase().contains(searchCtrl.text.toLowerCase()) || (b.sku??"").toLowerCase().contains(searchCtrl.text.toLowerCase())).toList();
               if(filter==FilterKategoriHarga.marginTinggi) filtered = filtered.where((b)=> b.hppAverage>0 && ((b.hargaEcer-b.hppAverage)/b.hppAverage*100)>=30).toList();
+              if(filtered.isEmpty) return const Center(child: Text("Tidak ada barang"));
               return ListView.builder(itemCount: filtered.length, padding: const EdgeInsets.fromLTRB(16,16,16,100), physics: const BouncingScrollPhysics(), itemBuilder: (_,i){
                 final b=filtered[i];
                 final qtyCtrl = qtyControllers.putIfAbsent(b.id, ()=> TextEditingController(text: "1"));

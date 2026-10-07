@@ -295,71 +295,71 @@ class _KasirScreenState extends ConsumerState<KasirScreen> {
   }
 
   Widget _barangListViewHP(AsyncValue<List<BarangData>> barangList){
-  return barangList.when(
-    data: (list){
-      var filtered = list.where((b)=> searchCtrl.text.isEmpty || b.nama.toLowerCase().contains(searchCtrl.text.toLowerCase()) || (b.sku??"").toLowerCase().contains(searchCtrl.text.toLowerCase())).toList();
-      if(filter==FilterKategoriHarga.marginTinggi) filtered = filtered.where((b)=> b.hppAverage>0 && ((b.hargaEcer-b.hppAverage)/b.hppAverage*100)>=30).toList();
-      if(filtered.isEmpty) return Container(padding: const EdgeInsets.symmetric(vertical:40), child: const Center(child: Text("Tidak ada barang - tambah di menu Stok dulu")));
-      return Column(children: filtered.map((b){
-        final qtyCtrl = qtyControllers.putIfAbsent(b.id, ()=> TextEditingController(text: "1"));
-        final manualCtrl = manualInputCtrls.putIfAbsent(b.id, ()=> TextEditingController());
-        final isShowManual = showManualInput[b.id]??false;
-        final manualPrice = manualPrices[b.id];
-        return Container(margin: const EdgeInsets.only(bottom:12), padding: const EdgeInsets.all(14), decoration: BoxDecoration(border: Border.all(color: const Color(0xFFE5E7EB)), borderRadius: BorderRadius.circular(16)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[
-          Text(b.nama, style: const TextStyle(fontWeight: FontWeight.w700)),
-          Text("SKU ${b.sku??'-'} • Stok ${b.stok} • ${formatRp(b.hppAverage.toDouble())}", style: const TextStyle(fontSize:11, color: Color(0xFF9CA3AF))),
-          const SizedBox(height:10),
-          Row(children:[
-            SizedBox(width:60, child: TextField(controller: qtyCtrl, textAlign: TextAlign.center, decoration: const InputDecoration(border: OutlineInputBorder(), isDense:true))),
-            const SizedBox(width:8),
-            Expanded(child: ElevatedButton(onPressed: (){ final q=int.tryParse(qtyCtrl.text)??1; ref.read(cartProvider.notifier).tambahItem(b, qty:q, tipeHarga:TipeHarga.ecer); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white), child: Text("ECER ${formatRp(b.hargaEcer.toDouble())}", style: const TextStyle(fontSize: 11)))),
-            const SizedBox(width:6),
-            Expanded(child: OutlinedButton(onPressed: (){ final q=int.tryParse(qtyCtrl.text)??1; ref.read(cartProvider.notifier).tambahItem(b, qty:q, tipeHarga:TipeHarga.agen); }, child: Text("AGEN ${formatRp(b.hargaAgen.toDouble())}", style: const TextStyle(fontSize: 11)))),
-          ]),
-          if(isShowManual)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Row(
-                children:[
-                  Expanded(child: TextField(controller: manualCtrl, keyboardType: TextInputType.number, decoration: InputDecoration(hintText: "Rp manual", border: OutlineInputBorder(borderRadius: BorderRadius.circular(999))))),
-                  const SizedBox(width: 8),
-                  InkWell(
-                    onTap: (){
-                      final v=double.tryParse(manualCtrl.text); 
-                      if(v==null) return; 
-                      setState((){
-                        manualPrices[b.id]=v; 
-                        showManualInput[b.id]=false;
-                      }); 
-                      final q=int.tryParse(qtyCtrl.text)??1; 
-                      _addToCartHtml(b, TipeHarga.manual, v, q);
-                    }, 
-                    child: Container(width: 40, height: 40, decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle), child: const Center(child: Text("✔️", style: TextStyle(color: Colors.white))))
-                  ),
-                  const SizedBox(width: 8),
-                  InkWell(onTap: ()=> setState(()=> showManualInput[b.id]=false), child: Container(width: 40, height: 40, decoration: BoxDecoration(border: Border.all(color: const Color(0xFFE5E7EB)), shape: BoxShape.circle), child: const Center(child: Text("✖️")))),
-                ]
-              )
+    return barangList.when(
+      data: (list){
+        var filtered = list.where((b)=> searchCtrl.text.isEmpty || b.nama.toLowerCase().contains(searchCtrl.text.toLowerCase()) || (b.sku??"").toLowerCase().contains(searchCtrl.text.toLowerCase())).toList();
+        if(filter==FilterKategoriHarga.marginTinggi) filtered = filtered.where((b)=> b.hppAverage>0 && ((b.hargaEcer-b.hppAverage)/b.hppAverage*100)>=30).toList();
+        if(filtered.isEmpty) return Container(padding: const EdgeInsets.symmetric(vertical:40), child: const Center(child: Text("Tidak ada barang - tambah di menu Stok dulu")));
+        return Column(children: filtered.map((b){
+          final qtyCtrl = qtyControllers.putIfAbsent(b.id, ()=> TextEditingController(text: "1"));
+          final manualCtrl = manualInputCtrls.putIfAbsent(b.id, ()=> TextEditingController());
+          final isShowManual = showManualInput[b.id]??false;
+          final manualPrice = manualPrices[b.id];
+          return Container(margin: const EdgeInsets.only(bottom:12), padding: const EdgeInsets.all(14), decoration: BoxDecoration(border: Border.all(color: const Color(0xFFE5E7EB)), borderRadius: BorderRadius.circular(16)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[
+            Text(b.nama, style: const TextStyle(fontWeight: FontWeight.w700)),
+            Text("SKU ${b.sku??'-'} • Stok ${b.stok} • ${formatRp(b.hppAverage.toDouble())}", style: const TextStyle(fontSize:11, color: Color(0xFF9CA3AF))),
+            const SizedBox(height:10),
+            Row(children:[
+              SizedBox(width:60, child: TextField(controller: qtyCtrl, textAlign: TextAlign.center, decoration: const InputDecoration(border: OutlineInputBorder(), isDense:true))),
+              const SizedBox(width:8),
+              Expanded(child: ElevatedButton(onPressed: (){ final q=int.tryParse(qtyCtrl.text)??1; ref.read(cartProvider.notifier).tambahItem(b, qty:q, tipeHarga:TipeHarga.ecer); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white), child: Text("ECER ${formatRp(b.hargaEcer.toDouble())}", style: const TextStyle(fontSize: 11)))),
+              const SizedBox(width:6),
+              Expanded(child: OutlinedButton(onPressed: (){ final q=int.tryParse(qtyCtrl.text)??1; ref.read(cartProvider.notifier).tambahItem(b, qty:q, tipeHarga:TipeHarga.agen); }, child: Text("AGEN ${formatRp(b.hargaAgen.toDouble())}", style: const TextStyle(fontSize: 11)))),
+            ]),
+            if(isShowManual)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  children:[
+                    Expanded(child: TextField(controller: manualCtrl, keyboardType: TextInputType.number, decoration: InputDecoration(hintText: "Rp manual", border: OutlineInputBorder(borderRadius: BorderRadius.circular(999))))),
+                    const SizedBox(width: 8),
+                    InkWell(
+                      onTap: (){
+                        final v=double.tryParse(manualCtrl.text); 
+                        if(v==null) return; 
+                        setState((){
+                          manualPrices[b.id]=v; 
+                          showManualInput[b.id]=false;
+                        }); 
+                        final q=int.tryParse(qtyCtrl.text)??1; 
+                        _addToCartHtml(b, TipeHarga.manual, v, q);
+                      }, 
+                      child: Container(width: 40, height: 40, decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle), child: const Center(child: Text("✔️", style: TextStyle(color: Colors.white))))
+                    ),
+                    const SizedBox(width: 8),
+                    InkWell(onTap: ()=> setState(()=> showManualInput[b.id]=false), child: Container(width: 40, height: 40, decoration: BoxDecoration(border: Border.all(color: const Color(0xFFE5E7EB)), shape: BoxShape.circle), child: const Center(child: Text("✖️")))),
+                  ]
+                )
+              ),
+            GestureDetector(
+              onTap: (){ 
+                if(manualPrice!=null){ 
+                  final q=int.tryParse(qtyCtrl.text)??1; 
+                  _addToCartHtml(b, TipeHarga.manual, manualPrice, q);
+                } else {
+                  setState(()=> showManualInput[b.id]=true);
+                }
+              }, 
+              onLongPress: ()=> setState(()=> showManualInput[b.id]=true), 
+              child: Container(margin: const EdgeInsets.only(top: 8), padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(999)), child: Text(manualPrice==null? "MANUAL ✏️ Tap nambah, tahan ganti": "MANUAL ${formatRp(manualPrice)}", style: const TextStyle(fontSize: 11)))
             ),
-          GestureDetector(
-            onTap: (){ 
-              if(manualPrice!=null){ 
-                final q=int.tryParse(qtyCtrl.text)??1; 
-                _addToCartHtml(b, TipeHarga.manual, manualPrice, q);
-              } else {
-                setState(()=> showManualInput[b.id]=true);
-              }
-            }, 
-            onLongPress: ()=> setState(()=> showManualInput[b.id]=true), 
-            child: Container(margin: const EdgeInsets.only(top: 8), padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(999)), child: Text(manualPrice==null? "MANUAL ✏️ Tap nambah, tahan ganti": "MANUAL ${formatRp(manualPrice)}", style: const TextStyle(fontSize: 11)))
-          ),
-        ]));
-      }).toList());
-    },
-    loading: ()=> const Center(child: CircularProgressIndicator()),
-    error: (e,_ )=> Center(child: Text("Error $e")),
-  );
-}
+          ]));
+        }).toList());
+      },
+      loading: ()=> const Center(child: CircularProgressIndicator()),
+      error: (e,_ )=> Center(child: Text("Error $e")),
+    );
+  }
 
   Widget _buildKeranjangPanel(List<CartItem> cart, int cartCount, double total, bool isWide){
     return Container(

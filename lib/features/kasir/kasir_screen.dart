@@ -90,10 +90,20 @@ class _KasirScreenState extends ConsumerState<KasirScreen> with SingleTickerProv
             child: LayoutBuilder(
               builder: (ctx, constraints){
                 final totalW = constraints.maxWidth;
-                // MIN WIDTH ANTI AMBURADUL - jika <300 auto hide, bukan kepotong
-                const minLeft = 320.0;
-                const minRight = 320.0;
-                final leftW = _isLeftMinimized? 0.0 : (totalW * _leftWidthFactor).clamp(minLeft, totalW - minRight);
+                // FIX BLANK: kalau layar HP kecil (<650), jangan pakai min 320 yang bikin clamp error → jadi blank abu
+                final isSmall = totalW < 650;
+                const minLeft = 280.0;
+                const minRight = 280.0;
+                double leftW;
+                if(_isLeftMinimized){
+                  leftW = 0.0;
+                } else if(isSmall){
+                  leftW = totalW * _leftWidthFactor; // HP: bebas, tidak clamp 320
+                } else {
+                  // Desktop: clamp aman, pastikan upper > lower
+                  final upper = (totalW - minRight).clamp(minLeft, totalW);
+                  leftW = (totalW * _leftWidthFactor).clamp(minLeft, upper);
+                }
                 return Row(
                   children: [
                     AnimatedContainer(
@@ -304,7 +314,15 @@ class _KasirScreenState extends ConsumerState<KasirScreen> with SingleTickerProv
     return GestureDetector(
       onTap: (){ if(manualPrice!=null){ final q=int.tryParse(qtyCtrl.text)??1; _addToCartHtml(b, TipeHarga.manual, manualPrice, q); } else { setState(()=> showManualInput[b.id]=true); } },
       onLongPress: ()=> setState(()=> showManualInput[b.id]=true),
-      child: Container(width: w, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7), decoration: BoxDecoration(color: const Color(0xFFF3F4F6), border: Border.all(color: const Color(0xFFE5E7EB)), borderRadius: BorderRadius.circular(999)), child: manualPrice==null? const Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children:[Text("MANUAL ✏️", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)), Text("Tap nambah, tahan ganti", style: TextStyle(fontSize: 8, color: Color(0xFF6B7280))) ]): Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children:[Text("MANUAL ${""}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis), Text("MANUAL ${""}", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis,)]..insert(1, Text("${formatRp(manualPrice)}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis))..add(Text("${mManual>=0?'+':''}${mManual.toStringAsFixed(0)}%", style: TextStyle(fontSize: 10, color: mManual>=0? const Color(0xFF16A34A): Colors.red))))),
+      child: Container(width: w, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7), decoration: BoxDecoration(color: const Color(0xFFF3F4F6), border: Border.all(color: const Color(0xFFE5E7EB)), borderRadius: BorderRadius.circular(999)), 
+        child: manualPrice==null
+          ? const Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children:[Text("MANUAL ✏️", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)), Text("Tap nambah, tahan ganti", style: TextStyle(fontSize: 8, color: Color(0xFF6B7280))) ])
+          : Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children:[
+              const Text("MANUAL", style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF6B7280))),
+              Text(formatRp(manualPrice), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text("${mManual>=0?'+':''}${mManual.toStringAsFixed(0)}%", style: TextStyle(fontSize: 10, color: mManual>=0? const Color(0xFF16A34A): Colors.red)),
+            ]),
+      ),
     );
   }
 
@@ -389,28 +407,18 @@ class _KasirScreenState extends ConsumerState<KasirScreen> with SingleTickerProv
               ]);
             }),
             const SizedBox(height: 10),
-                        SizedBox(width: double.infinity, height: 44, child: ElevatedButton(
-              onPressed: total<=0? null: () async {
-                final nota="INV-${DateTime.now().millisecondsSinceEpoch}";
-                final nama=namaPembeliCtrl.text.trim().isEmpty? "Umum": namaPembeliCtrl.text.trim();
-                _showStrukSuratModal(context, cart, total, nota, nama);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: total<=0? const Color(0xFFE5E7EB): const Color(0xFF2563EB),
-                foregroundColor: total<=0? const Color(0xFF9CA3AF): Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                padding: const EdgeInsets.symmetric(horizontal: 16)
-              ),
-              child: const FittedBox(child: Text("PROSES PEMBAYARAN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)))
-            )),
+            SizedBox(width: double.infinity, height: 44, child: ElevatedButton(onPressed: total<=0? null: () async {
+              final nota="INV-${DateTime.now().millisecondsSinceEpoch}";
+              final nama=namaPembeliCtrl.text.trim().isEmpty? "Umum": namaPembeliCtrl.text.trim();
+              _showStrukSuratModal(context, cart, total, nota, nama);
+            }, style: ElevatedButton.styleFrom(backgroundColor: total<=0? const Color(0xFFE5E7EB): const Color(0xFF2563EB), foregroundColor: total<=0? const Color(0xFF9CA3AF): Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999))), padding: const EdgeInsets.symmetric(horizontal: 16)), child: const FittedBox(child: Text("PROSES PEMBAYARAN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))))),
             const SizedBox(height: 6),
             const Text("Geser garis tengah untuk atur • Mentok kiri auto hide", style: TextStyle(fontSize: 9, color: Color(0xFF9CA3AF)), textAlign: TextAlign.center),
-          ]),
+          ])
         ),
       ]),
     );
   }
- 
 
   void _showStrukSuratModal(BuildContext context, List<CartItem> cart, double total, String nota, String nama){
     showDialog(context: context, barrierColor: Colors.black.withOpacity(0.6), builder: (_){
@@ -492,7 +500,7 @@ class _KasirScreenState extends ConsumerState<KasirScreen> with SingleTickerProv
             const SizedBox(width: 10),
             Expanded(child: InkWell(onTap: () async { final checkoutNama = namaPembeliCtrl.text.trim().isEmpty? null: namaPembeliCtrl.text.trim(); await ref.read(cartProvider.notifier).checkout(pelangganNama: checkoutNama, topDays: topDays, noNota: nota); if(context.mounted) Navigator.pop(ctx); }, child: Container(height: 44, decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(999)), child: const Center(child: Text("Tutup & Selesai", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)))))),
           ])),
-         ])));
+        ]));
       });
     });
   }

@@ -1,19 +1,25 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/database/local_database.dart';
-import '../../core/cache/isar_service.dart';
+import '../../../core/database/local_database.dart';
 
-// Model fallback jika collection belum ada - pakai dynamic
-// Kalau IsarService punya suppliers collection, ganti dengan query asli
-final supplierStreamProvider = StreamProvider<List<SupplierData>>((ref) async* {
-  try {
-    final isar = IsarService.db;
-    // Coba baca dari Isar - jika collection ada
-    final stream = isar.suppliers.where().watch(fireImmediately: true);
-    await for (final list in stream) {
-      yield list;
-    }
-  } catch (_) {
-    // Fallback: jika collection belum ada atau error, yield empty biar build tidak failed abu-abu
-    yield [];
-  }
+// Provider database lokal Drift - Sony Jaya v7
+final localDbProvider = Provider<LocalDatabase>((ref) {
+  return LocalDatabase();
+});
+
+// Stream semua supplier - FIX: tidak pakai IsarService.db lagi
+final supplierStreamProvider = StreamProvider<List<SupplierData>>((ref) {
+  final db = ref.watch(localDbProvider);
+  return db.select(db.supplier).watch();
+});
+
+// Optional: filter pencarian
+final filteredSupplierProvider = Provider.family<List<SupplierData>, String>((ref, query) {
+  final asyncData = ref.watch(supplierStreamProvider);
+  return asyncData.maybeWhen(
+    data: (list) {
+      if (query.isEmpty) return list;
+      return list.where((s) => s.nama.toLowerCase().contains(query.toLowerCase())).toList();
+    },
+    orElse: () => [],
+  );
 });

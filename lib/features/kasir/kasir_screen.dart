@@ -411,7 +411,7 @@ class _KasirScreenState extends ConsumerState<KasirScreen> with SingleTickerProv
               final nota="INV-${DateTime.now().millisecondsSinceEpoch}";
               final nama=namaPembeliCtrl.text.trim().isEmpty? "Umum": namaPembeliCtrl.text.trim();
               _showStrukSuratModal(context, cart, total, nota, nama);
-            }, style: ElevatedButton.styleFrom(backgroundColor: total<=0? const Color(0xFFE5E7EB): const Color(0xFF2563EB), foregroundColor: total<=0? const Color(0xFF9CA3AF): Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999))), padding: const EdgeInsets.symmetric(horizontal: 16)), child: const FittedBox(child: Text("PROSES PEMBAYARAN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))))),
+            }, style: ElevatedButton.styleFrom(backgroundColor: total<=0? const Color(0xFFE5E7EB): const Color(0xFF2563EB), foregroundColor: total<=0? const Color(0xFF9CA3AF): Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)), padding: const EdgeInsets.symmetric(horizontal: 16)), child: const FittedBox(child: Text("PROSES PEMBAYARAN", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))))),
             const SizedBox(height: 6),
             const Text("Geser garis tengah untuk atur • Mentok kiri auto hide", style: TextStyle(fontSize: 9, color: Color(0xFF9CA3AF)), textAlign: TextAlign.center),
           ])
@@ -500,7 +500,7 @@ class _KasirScreenState extends ConsumerState<KasirScreen> with SingleTickerProv
             const SizedBox(width: 10),
             Expanded(child: InkWell(onTap: () async { final checkoutNama = namaPembeliCtrl.text.trim().isEmpty? null: namaPembeliCtrl.text.trim(); await ref.read(cartProvider.notifier).checkout(pelangganNama: checkoutNama, topDays: topDays, noNota: nota); if(context.mounted) Navigator.pop(ctx); }, child: Container(height: 44, decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(999)), child: const Center(child: Text("Tutup & Selesai", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)))))),
           ])),
-        ]));
+        ])));
       });
     });
   }

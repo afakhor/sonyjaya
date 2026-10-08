@@ -397,10 +397,7 @@ class _KasirScreenState extends ConsumerState<KasirScreen> with SingleTickerProv
 ))))]),
             const SizedBox(height: 6),
             const Text("Geser garis tengah untuk atur • Mentok kiri auto hide", style: TextStyle(fontSize: 9, color: Color(0xFF9CA3AF)), textAlign: TextAlign.center),
-          ])
-        );
-      ]),
-    );
+]));]),);
   }
 
   void _showStrukSuratModal(BuildContext context, List<CartItem> cart, double total, String nota, String nama){
@@ -483,7 +480,7 @@ class _KasirScreenState extends ConsumerState<KasirScreen> with SingleTickerProv
             const SizedBox(width: 10),
             Expanded(child: InkWell(onTap: () async { final checkoutNama = namaPembeliCtrl.text.trim().isEmpty? null: namaPembeliCtrl.text.trim(); await ref.read(cartProvider.notifier).checkout(pelangganNama: checkoutNama, topDays: topDays, noNota: nota); if(context.mounted) Navigator.pop(ctx); }, child: Container(height: 44, decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(999)), child: const Center(child: Text("Tutup & Selesai", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)))))),
           ])),
-])));
+         ])));
       });
     });
   }

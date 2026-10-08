@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/database/local_database.dart';
-import '../../core/cache/isar_service.dart';
+import '../../../core/database/local_database.dart';
+import '../../../core/cache/isar_service.dart';
 
 // Model fallback jika collection belum ada - pakai dynamic
 // Kalau IsarService punya suppliers collection, ganti dengan query asli

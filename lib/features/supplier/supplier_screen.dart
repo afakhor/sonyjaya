@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/database/local_database.dart';
-import '../inventory/providers/inventory_provider.dart';
 import 'providers/supplier_provider.dart';
 
 class SupplierScreen extends ConsumerStatefulWidget {
@@ -18,10 +16,10 @@ class _SupplierScreenState extends ConsumerState<SupplierScreen> {
   }
 
   @override Widget build(BuildContext context) {
-    final supplierList = ref.watch(supplierStreamProvider);
+    final supplierAsync = ref.watch(supplierStreamProvider);
 
     return Scaffold(
-      backgroundColor: Colors.white, // FIX ABU TUA FOTO KAMU -> PUTIH
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
@@ -31,10 +29,9 @@ class _SupplierScreenState extends ConsumerState<SupplierScreen> {
         title: const Text('Master Supplier', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
       ),
       body: Container(
-        color: const Color(0xFFF9FAFB), // cantik, bukan abu tua #CCCCCC di foto kamu
+        color: const Color(0xFFF9FAFB),
         child: Column(
           children: [
-            // Search rapi
             Container(
               color: Colors.white,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -56,7 +53,7 @@ class _SupplierScreenState extends ConsumerState<SupplierScreen> {
             ),
             const Divider(height: 1, color: Color(0xFFF1F5F9)),
             Expanded(
-              child: supplierList.when(
+              child: supplierAsync.when(
                 data: (list) {
                   var filtered = list;
                   if (searchCtrl.text.isNotEmpty) {
@@ -97,7 +94,7 @@ class _SupplierScreenState extends ConsumerState<SupplierScreen> {
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
+                error: (e, _) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.error_outline, color: Colors.red), const SizedBox(height: 8), Text('Error: $e', style: const TextStyle(fontSize: 12)), const SizedBox(height: 12), ElevatedButton(onPressed: () => ref.invalidate(supplierStreamProvider), child: const Text('Coba lagi'))])),
               ),
             ),
           ],

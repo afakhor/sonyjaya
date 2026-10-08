@@ -397,8 +397,12 @@ class _KasirScreenState extends ConsumerState<KasirScreen> with SingleTickerProv
 ))))]),
             const SizedBox(height: 6),
             const Text("Geser garis tengah untuk atur • Mentok kiri auto hide", style: TextStyle(fontSize: 9, color: Color(0xFF9CA3AF)), textAlign: TextAlign.center),
-]));]),);
+          ])
+        ),
+      ]),
+    );
   }
+ 
 
   void _showStrukSuratModal(BuildContext context, List<CartItem> cart, double total, String nota, String nama){
     showDialog(context: context, barrierColor: Colors.black.withOpacity(0.6), builder: (_){

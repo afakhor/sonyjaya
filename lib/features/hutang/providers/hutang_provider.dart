@@ -1,53 +1,33 @@
+// lib/features/hutang/providers/hutang_provider.dart - FINAL FIX
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:drift/drift.dart';
 import '../../../core/database/local_database.dart';
 import '../../inventory/providers/inventory_provider.dart';
 
-class HutangSummary {
+class HutangGroup {
   final String namaSupplier;
-  final double totalHutang;
   final int jumlahPo;
-  final List<PurchaseOrder> daftarPo;
-
-  HutangSummary({
-    required this.namaSupplier,
-    required this.totalHutang,
-    required this.jumlahPo,
-    required this.daftarPo,
-  });
+  final double totalHutang;
+  final List<PurchaseOrdersData> daftarPo;
+  HutangGroup({required this.namaSupplier, required this.jumlahPo, required this.totalHutang, required this.daftarPo});
 }
 
-final hutangListProvider = FutureProvider.autoDispose<List<HutangSummary>>((ref) async {
+// Provider lama PO-based tetap biar tidak error
+final hutangListProvider = StreamProvider<List<HutangGroup>>((ref) async* {
   final db = ref.watch(localDbProvider);
-
-  // Chaining ..where() secara terpisah otomatis berfungsi sebagai logika AND di Drift
-  final listPo = await (db.select(db.purchaseOrders)
-        ..where((p) => p.tipePo.equals('VENDOR'))
-        ..where((p) => p.statusBayar.equals('BELUM_LUNAS')))
-      .get();
-
-  final Map<String, List<PurchaseOrder>> grouped = {};
-  for (var po in listPo) {
-    final String nama = po.namaRelasi.isNotEmpty ? po.namaRelasi : 'Supplier Umum';
-    if (!grouped.containsKey(nama)) {
-      grouped[nama] = [];
-    }
-    grouped[nama]!.add(po);
+  final poList = await (db.select(db.purchaseOrders)..where((t) => t.statusBayar.equals('BELUM_LUNAS'))).get();
+  final Map<String, List<PurchaseOrdersData>> grouped = {};
+  for (var po in poList) {
+    grouped.putIfAbsent(po.namaRelasi, () => []).add(po);
   }
+  final result = grouped.entries.map((e) {
+    final total = e.value.fold<double>(0, (s, po) => s + po.totalKeseluruhan);
+    return HutangGroup(namaSupplier: e.key, jumlahPo: e.value.length, totalHutang: total, daftarPo: e.value);
+  }).toList();
+  yield result;
+});
 
-  final List<HutangSummary> result = [];
-  grouped.forEach((nama, pos) {
-    final double total = pos.fold<double>(
-      0.0,
-      (sum, p) => sum + p.totalKeseluruhan,
-    );
-    result.add(HutangSummary(
-      namaSupplier: nama,
-      totalHutang: total,
-      jumlahPo: pos.length,
-      daftarPo: pos,
-    ));
-  });
-
-  return result;
+// Provider baru Nota-based kuning sinkron
+final hutangSupplierListProvider = StreamProvider<List<HutangSupplierData>>((ref) {
+  final db = ref.watch(localDbProvider);
+  return db.hutangDao.watchAll();
 });

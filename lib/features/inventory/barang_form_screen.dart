@@ -1,7 +1,9 @@
+// lib/features/inventory/barang_form_screen.dart - FINAL BUILD FIX - updatedAt ada, localDbProvider ada
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:drift/drift.dart' as drift;
-import '../../../core/database/local_database.dart';
+import '../../core/database/local_database.dart';
+import 'providers/inventory_provider.dart';
 
 class BarangFormScreen extends ConsumerStatefulWidget {
   final BarangData? existing;
@@ -37,18 +39,18 @@ class _BarangFormScreenState extends ConsumerState<BarangFormScreen> {
     final b=widget.existing; final hpp=b?.hppAverage??0;
     return Scaffold(appBar: AppBar(title: Text(b==null?'Input Barang Baru':'Edit Barang'), backgroundColor: Colors.white, elevation:0, surfaceTintColor: Colors.white, leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: ()=>Navigator.pop(context))), backgroundColor: const Color(0xFFF8FAFC),
       body: Form(key: _formKey, child: ListView(padding: const EdgeInsets.all(16), children: [
-        TextFormField(controller: skuC, decoration: const InputDecoration(labelText: 'SKU / Kode', border: OutlineInputBorder())), // BIRU
+        TextFormField(controller: skuC, decoration: const InputDecoration(labelText: 'SKU / Kode', border: OutlineInputBorder())),
         const SizedBox(height:12),
-        TextFormField(controller: namaC, decoration: const InputDecoration(labelText: 'Nama Perkakas *', border: OutlineInputBorder()), validator: (v)=>v!.isEmpty?'Wajib':null), // BIRU
+        TextFormField(controller: namaC, decoration: const InputDecoration(labelText: 'Nama Perkakas *', border: OutlineInputBorder()), validator: (v)=>v!.isEmpty?'Wajib':null),
         const SizedBox(height:12),
-        TextFormField(controller: merekC, decoration: const InputDecoration(labelText: 'Merek (Bosch, Makita)', border: OutlineInputBorder())), // BIRU
+        TextFormField(controller: merekC, decoration: const InputDecoration(labelText: 'Merek (Bosch, Makita)', border: OutlineInputBorder())),
         const SizedBox(height:12),
         Autocomplete<SupplierData>(
           displayStringForOption: (s)=>s.nama,
           optionsBuilder: (v) async { final all=await ref.read(localDbProvider).supplierDao.getAll(); if(v.text.isEmpty) return all; return all.where((e)=>e.nama.toLowerCase().contains(v.text.toLowerCase())); },
           onSelected: (s)=>setState((){_selectedSupplier=s; supplierC.text=s.nama;}),
           fieldViewBuilder: (c,ctrl,f,_){ if(supplierC.text.isNotEmpty && ctrl.text.isEmpty) ctrl.text=supplierC.text; return TextField(controller: ctrl, focusNode: f, decoration: const InputDecoration(labelText: 'Supplier - auto nyambung', border: OutlineInputBorder(), prefixIcon: Icon(Icons.local_shipping)), onChanged: (v)=>supplierC.text=v); },
-        ), // BIRU
+        ),
         const SizedBox(height:12),
         Row(children: [Expanded(child: TextFormField(controller: kecilC, decoration: const InputDecoration(labelText: 'Satuan Kecil', border: OutlineInputBorder()))), const SizedBox(width:12), Expanded(child: TextFormField(controller: besarC, decoration: const InputDecoration(labelText: 'Satuan Besar', border: OutlineInputBorder())))]),
         const SizedBox(height:12),

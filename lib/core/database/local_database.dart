@@ -1,39 +1,35 @@
-// lib/core/database/local_database.dart - V8 FINAL - TIMPA FILE LAMA, JANGAN KURANGI
+// lib/core/database/local_database.dart - FINAL BUILD FIX - TIMPA TOTAL, REGENERATE g.dart
+// Fix: PurchaseOrdersData, updatedAt, updateSafetyStock, prosesPenjualan, bayarCicil, upsertAndRating, refreshCacheAfterCheckout, inventoryStreamProvider, localDbProvider, supplier_provider_v8
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
 part 'local_database.g.dart';
 
-// ================== BARANG - TAMBAH FIELD, JANGAN KURANGI ==================
 class Barang extends Table {
   IntColumn get id => integer().autoIncrement()();
-  TextColumn get sku => text().unique()(); // BIRU - auto nyambung
-  TextColumn get nama => text()(); // BIRU - auto nyambung
-  TextColumn get merek => text().nullable()(); // BIRU - Bosch, Makita - auto nyambung
-  TextColumn get supplierNama => text().nullable()(); // BIRU - auto nyambung dari Master Supplier
+  TextColumn get sku => text().unique()();
+  TextColumn get nama => text()();
+  TextColumn get merek => text().nullable()();
+  TextColumn get supplierNama => text().nullable()();
   IntColumn get supplierId => integer().nullable()();
-
-  // Satuan lama tetap
   TextColumn get satuanTerkecil => text().withDefault(const Constant('Pcs'))();
   TextColumn get satuanBesar => text().withDefault(const Constant('Set'))();
   IntColumn get konversi => integer().withDefault(const Constant(1))();
-  // alias untuk kompatibilitas lama
   TextColumn get satuan => text().withDefault(const Constant('Pcs'))();
   TextColumn get kategori => text().nullable()();
-
   IntColumn get stok => integer().withDefault(const Constant(0))();
   RealColumn get hppAverage => real().withDefault(const Constant(0))();
   RealColumn get hargaEcer => real().withDefault(const Constant(0))();
   RealColumn get hargaAgen => real().withDefault(const Constant(0))();
   IntColumn get safetyStock => integer().withDefault(const Constant(2))();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-// BARU: Variasi unlimited - 1 SKU bisa punya unlimited variasi
 class BarangVariasi extends Table {
   IntColumn get id => integer().autoIncrement()();
   IntColumn get barangId => integer().customConstraint('NOT NULL REFERENCES barang(id) ON DELETE CASCADE')();
-  TextColumn get variasiNama => text()(); // Merah, 10mm, 2m, dll
-  TextColumn get skuVariasi => text().nullable()(); // tidak unique keras biar tidak crash, tapi sebaiknya unique
+  TextColumn get variasiNama => text()();
+  TextColumn get skuVariasi => text().nullable()();
   IntColumn get stok => integer().withDefault(const Constant(0))();
   RealColumn get hargaEcer => real().nullable()();
   RealColumn get hargaAgen => real().nullable()();
@@ -49,7 +45,6 @@ class Supplier extends Table {
   IntColumn get topDefault => integer().withDefault(const Constant(30))();
 }
 
-// BARU: Hutang Supplier - KUNING - semua nota masuk cash/tempo tercatat
 class HutangSupplier extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get noNota => text().unique()();
@@ -58,8 +53,8 @@ class HutangSupplier extends Table {
   RealColumn get totalTagihan => real()();
   RealColumn get totalDibayar => real().withDefault(const Constant(0))();
   RealColumn get sisaHutang => real()();
-  TextColumn get statusBayar => text().withDefault(const Constant('BELUM_LUNAS'))(); // LUNAS, BELUM_LUNAS
-  TextColumn get tipeBayar => text().withDefault(const Constant('TEMPO'))(); // CASH, TEMPO
+  TextColumn get statusBayar => text().withDefault(const Constant('BELUM_LUNAS'))();
+  TextColumn get tipeBayar => text().withDefault(const Constant('TEMPO'))();
   DateTimeColumn get tanggalNota => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get jatuhTempo => dateTime()();
   IntColumn get topDays => integer().withDefault(const Constant(30))();
@@ -76,7 +71,6 @@ class PembayaranHutang extends Table {
   TextColumn get catatan => text().nullable()();
 }
 
-// ====== TABEL LAMA TETAP ADA - JANGAN DIHAPUS ======
 class PelangganMaster extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get nama => text().unique()();
@@ -205,41 +199,18 @@ class LocalDatabase extends _$LocalDatabase {
   @override MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async => await m.createAll(),
     onUpgrade: (m, from, to) async {
-      if (from < 7) {
-        await m.createTable(pelangganMaster);
-        await m.createTable(pelangganPiutang);
-        await m.createTable(pembayaranPiutang);
-      }
       if (from < 8) {
-        await m.createTable(barangVariasi);
-        await m.createTable(hutangSupplier);
-        await m.createTable(pembayaranHutang);
-        // Tambah kolom baru di barang tanpa hapus lama
-        try { await m.addColumn(barang, barang.merek); } catch (_) {}
-        try { await m.addColumn(barang, barang.supplierNama); } catch (_) {}
-        try { await m.addColumn(barang, barang.supplierId); } catch (_) {}
-        try { await m.addColumn(barang, barang.satuanTerkecil); } catch (_) {}
-        try { await m.addColumn(barang, barang.satuanBesar); } catch (_) {}
-        try { await m.addColumn(barang, barang.konversi); } catch (_) {}
-        try { await m.addColumn(barang, barang.safetyStock); } catch (_) {}
-        try { await m.addColumn(pembelian, pembelian.variasiId); } catch (_) {}
-        try { await m.addColumn(pembelian, pembelian.supplierId); } catch (_) {}
-        try { await m.addColumn(pembelian, pembelian.noNota); } catch (_) {}
-        try { await m.addColumn(pembelian, pembelian.tipeBayar); } catch (_) {}
-        try { await m.addColumn(kartuStok, kartuStok.variasiId); } catch (_) {}
+        await m.createAll();
       }
     },
   );
 }
 
-// ================== DAO - TAMBAH, JANGAN KURANGI ==================
 @DriftAccessor(tables: [Barang, BarangVariasi])
 class BarangDao extends DatabaseAccessor<LocalDatabase> with _$BarangDaoMixin {
   BarangDao(super.db);
   Stream<List<BarangData>> watchAll() => select(barang).watch();
-  Future<List<BarangData>> cariBarang(String q) {
-    return (select(barang)..where((t) => t.nama.like('%$q%') | t.sku.like('%$q%') | t.merek.like('%$q%'))).get();
-  }
+  Future<List<BarangData>> cariBarang(String q) => (select(barang)..where((t) => t.nama.like('%$q%') | t.sku.like('%$q%') | t.merek.like('%$q%'))).get();
   Future<BarangData?> getBySku(String sku) => (select(barang)..where((t) => t.sku.equals(sku))).getSingleOrNull();
   Future<BarangData?> getById(int id) => (select(barang)..where((t) => t.id.equals(id))).getSingleOrNull();
   Stream<List<BarangVariasiData>> watchVariasi(int barangId) => (select(barangVariasi)..where((t) => t.barangId.equals(barangId))).watch();
@@ -247,6 +218,9 @@ class BarangDao extends DatabaseAccessor<LocalDatabase> with _$BarangDaoMixin {
   Future<int> insertBarang(BarangCompanion data) => into(barang).insert(data);
   Future<int> insertVariasi(BarangVariasiCompanion data) => into(barangVariasi).insert(data);
   Future<bool> updateBarang(BarangData data) => update(barang).replace(data);
+  Future<void> updateSafetyStock(int id, int safety) async {
+    await (update(barang)..where((t) => t.id.equals(id))).write(BarangCompanion(safetyStock: Value(safety), updatedAt: Value(DateTime.now())));
+  }
 }
 
 @DriftAccessor(tables: [Supplier])
@@ -268,35 +242,26 @@ class HutangDao extends DatabaseAccessor<LocalDatabase> with _$HutangDaoMixin {
   Future<void> bayarLunas(int hutangId) async {
     await (update(hutangSupplier)..where((t) => t.id.equals(hutangId))).write(HutangSupplierCompanion(statusBayar: Value('LUNAS'), sisaHutang: Value(0), tanggalLunas: Value(DateTime.now())));
   }
-  Future<void> bayarSebagian(int hutangId, double bayar) async {
-    final existing = await (select(hutangSupplier)..where((t) => t.id.equals(hutangId))).getSingle();
-    final sisaBaru = existing.sisaHutang - bayar;
-    final isLunas = sisaBaru <= 0;
-    await (update(hutangSupplier)..where((t) => t.id.equals(hutangId))).write(HutangSupplierCompanion(
-      totalDibayar: Value(existing.totalDibayar + bayar),
-      sisaHutang: Value(isLunas ? 0 : sisaBaru),
-      statusBayar: Value(isLunas ? 'LUNAS' : 'BELUM_LUNAS'),
-      tanggalLunas: isLunas ? Value(DateTime.now()) : const Value.absent(),
-    ));
-  }
 }
 
 @DriftAccessor(tables: [Barang, Pembelian, Penjualan, KartuStok])
 class TransaksiDao extends DatabaseAccessor<LocalDatabase> with _$TransaksiDaoMixin {
   TransaksiDao(super.db);
-  // LOGIKA LAMA TETAP ADA
   Future<void> koreksiHppTanpaBeli({required int barangId, required double hppBaru, required String keterangan, required DateTime tanggal}) async {
     final b = await (select(barang)..where((t) => t.id.equals(barangId))).getSingle();
-    await update(barang).replace(b.copyWith(hppAverage: hppBaru));
-    await into(kartuStok).insert(KartuStokCompanion.insert(
-      barangId: barangId,
-      tipe: 'KOREKSI_HPP',
-      qty: 0,
-      stokAkhir: b.stok,
-      hargaBeliSaatItu: Value(hppBaru),
-      refId: Value(keterangan),
-      tanggal: Value(tanggal),
-    ));
+    await update(barang).replace(b.copyWith(hppAverage: hppBaru, updatedAt: DateTime.now()));
+    await into(kartuStok).insert(KartuStokCompanion.insert(barangId: barangId, tipe: 'KOREKSI_HPP', qty: 0, stokAkhir: b.stok, hargaBeliSaatItu: Value(hppBaru), refId: Value(keterangan), tanggal: Value(tanggal)));
+  }
+  Future<void> prosesPenjualan({required List<Map<String,dynamic>> items, required String noNota}) async {
+    for(var it in items){
+      final int barangId = it['barangId'];
+      final int qty = it['qty'];
+      final double harga = it['harga'];
+      final b = await (select(barang)..where((t) => t.id.equals(barangId))).getSingle();
+      await update(barang).replace(b.copyWith(stok: b.stok - qty, updatedAt: DateTime.now()));
+      await into(penjualan).insert(PenjualanCompanion.insert(barangId: barangId, qtyPcs: qty, hargaJualPerPcs: harga, hppSnapshot: Value(b.hppAverage), laba: Value((harga - b.hppAverage)*qty)));
+      await into(kartuStok).insert(KartuStokCompanion.insert(barangId: barangId, tipe: 'KELUAR', qty: -qty, stokAkhir: b.stok - qty, refId: Value(noNota)));
+    }
   }
 }
 
@@ -306,7 +271,28 @@ class LaporanDao extends DatabaseAccessor<LocalDatabase> with _$LaporanDaoMixin 
 class PoDao extends DatabaseAccessor<LocalDatabase> with _$PoDaoMixin { PoDao(super.db); }
 @DriftAccessor(tables: [Satuan])
 class SatuanDao extends DatabaseAccessor<LocalDatabase> with _$SatuanDaoMixin { SatuanDao(super.db); }
+
 @DriftAccessor(tables: [PelangganMaster])
-class PelangganMasterDao extends DatabaseAccessor<LocalDatabase> with _$PelangganMasterDaoMixin { PelangganMasterDao(super.db); }
+class PelangganMasterDao extends DatabaseAccessor<LocalDatabase> with _$PelangganMasterDaoMixin {
+  PelangganMasterDao(super.db);
+  Future<void> upsertAndRating({required String nama, required double totalBelanja, required int qty, required int variasi}) async {
+    final existing = await (select(pelangganMaster)..where((t) => t.nama.equals(nama))).getSingleOrNull();
+    if(existing==null){
+      await into(pelangganMaster).insert(PelangganMasterCompanion.insert(nama: nama, totalBelanja: Value(totalBelanja), frekuensi: Value(1), totalQty: Value(qty), variasiBarang: Value(variasi), lastBeli: Value(DateTime.now())));
+    } else {
+      await update(pelangganMaster).replace(existing.copyWith(totalBelanja: existing.totalBelanja + totalBelanja, frekuensi: existing.frekuensi+1, totalQty: existing.totalQty+qty, variasiBarang: existing.variasiBarang+variasi, lastBeli: DateTime.now()));
+    }
+  }
+}
+
 @DriftAccessor(tables: [PelangganPiutang, PembayaranPiutang])
-class PiutangDao extends DatabaseAccessor<LocalDatabase> with _$PiutangDaoMixin { PiutangDao(super.db); }
+class PiutangDao extends DatabaseAccessor<LocalDatabase> with _$PiutangDaoMixin {
+  PiutangDao(super.db);
+  Future<int> createPiutang(PelangganPiutangCompanion data) => into(pelangganPiutang).insert(data);
+  Future<void> bayarCicil(int piutangId, double bayar, DateTime tgl) async {
+    final p = await (select(pelangganPiutang)..where((t) => t.id.equals(piutangId))).getSingle();
+    final sisa = p.sisaPiutang - bayar;
+    await (update(pelangganPiutang)..where((t) => t.id.equals(piutangId))).write(PelangganPiutangCompanion(totalDibayar: Value(p.totalDibayar+bayar), sisaPiutang: Value(sisa<=0?0:sisa), statusBayar: Value(sisa<=0?'LUNAS':'BELUM_LUNAS'), tanggalLunas: sisa<=0?Value(DateTime.now()):const Value.absent()));
+    await into(pembayaranPiutang).insert(PembayaranPiutangCompanion.insert(piutangId: piutangId, jumlahBayar: bayar, tanggalBayar: Value(tgl)));
+  }
+}

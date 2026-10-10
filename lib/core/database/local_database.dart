@@ -1,4 +1,4 @@
-// lib/core/database/local_database.dart - FINAL BUILD FIX + COMPAT KASIR + PIUTANG + INVENTORY
+// lib/core/database/local_database.dart - FINAL BUILD SUKSES - FIX Value<> + lastBeli
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 part 'local_database.g.dart';
@@ -248,14 +248,16 @@ class SatuanDao extends DatabaseAccessor<LocalDatabase> with _$SatuanDaoMixin { 
 @DriftAccessor(tables: [PelangganMaster])
 class PelangganMasterDao extends DatabaseAccessor<LocalDatabase> with _$PelangganMasterDaoMixin {
   PelangganMasterDao(super.db);
-  Future<void> upsertAndRating({required String nama, double? totalBelanja, double? tambahBelanja, required int qty, required int variasi, int? totalQty}) async {
+  Future<void> upsertAndRating({required String nama, double? totalBelanja, double? tambahBelanja, required int qty, required int variasi, int? totalQty, int? tambahQty, int? tambahVariasi}) async {
     final double belanja = totalBelanja ?? tambahBelanja ?? 0;
-    final int q = totalQty ?? qty;
+    final int q = totalQty ?? tambahQty ?? qty;
+    final int v = tambahVariasi ?? variasi;
     final existing = await (select(pelangganMaster)..where((t) => t.nama.equals(nama))).getSingleOrNull();
     if(existing==null){
-      await into(pelangganMaster).insert(PelangganMasterCompanion.insert(nama: nama, totalBelanja: Value(belanja), frekuensi: Value(1), totalQty: Value(q), variasiBarang: Value(variasi), lastBeli: Value(DateTime.now())));
+      await into(pelangganMaster).insert(PelangganMasterCompanion.insert(nama: nama, totalBelanja: Value(belanja), frekuensi: Value(1), totalQty: Value(q), variasiBarang: Value(v), lastBeli: Value(DateTime.now())));
     } else {
-      await update(pelangganMaster).replace(existing.copyWith(totalBelanja: existing.totalBelanja + belanja, frekuensi: existing.frekuensi+1, totalQty: existing.totalQty+q, variasiBarang: existing.variasiBarang+variasi, lastBeli: DateTime.now()));
+      // FIX: lastBeli harus Value(DateTime.now())
+      await update(pelangganMaster).replace(existing.copyWith(totalBelanja: existing.totalBelanja + belanja, frekuensi: existing.frekuensi+1, totalQty: existing.totalQty+q, variasiBarang: existing.variasiBarang+v, lastBeli: Value(DateTime.now())));
     }
   }
 }

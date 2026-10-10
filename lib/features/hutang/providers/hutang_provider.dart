@@ -1,4 +1,4 @@
-// lib/features/hutang/providers/hutang_provider.dart - FINAL FIX
+// lib/features/hutang/providers/hutang_provider.dart - FINAL FIX NO PurchaseOrdersData ERROR
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/local_database.dart';
 import '../../inventory/providers/inventory_provider.dart';
@@ -7,15 +7,15 @@ class HutangGroup {
   final String namaSupplier;
   final int jumlahPo;
   final double totalHutang;
-  final List<PurchaseOrdersData> daftarPo;
+  final List<PurchaseOrder> daftarPo; // pakai PurchaseOrder bukan PurchaseOrdersData - compatible
   HutangGroup({required this.namaSupplier, required this.jumlahPo, required this.totalHutang, required this.daftarPo});
 }
 
-// Provider lama PO-based tetap biar tidak error
 final hutangListProvider = StreamProvider<List<HutangGroup>>((ref) async* {
   final db = ref.watch(localDbProvider);
+  // PO belum lunas - pakai nama table asli
   final poList = await (db.select(db.purchaseOrders)..where((t) => t.statusBayar.equals('BELUM_LUNAS'))).get();
-  final Map<String, List<PurchaseOrdersData>> grouped = {};
+  final Map<String, List<PurchaseOrder>> grouped = {};
   for (var po in poList) {
     grouped.putIfAbsent(po.namaRelasi, () => []).add(po);
   }
@@ -26,8 +26,8 @@ final hutangListProvider = StreamProvider<List<HutangGroup>>((ref) async* {
   yield result;
 });
 
-// Provider baru Nota-based kuning sinkron
 final hutangSupplierListProvider = StreamProvider<List<HutangSupplierData>>((ref) {
   final db = ref.watch(localDbProvider);
   return db.hutangDao.watchAll();
 });
+final hutangStreamProvider = hutangSupplierListProvider;

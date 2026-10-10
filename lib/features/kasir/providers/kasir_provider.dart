@@ -1,4 +1,5 @@
 // lib/features/kasir/providers/kasir_provider.dart - FINAL FIX FULL - tanpa kurangi logika, tambah fitur manual, updateQty, searchQuery
+import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/local_database.dart';
 import '../../inventory/providers/inventory_provider.dart';

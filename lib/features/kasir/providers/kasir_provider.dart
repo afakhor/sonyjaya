@@ -82,7 +82,7 @@ class CartNotifier extends Notifier<List<CartItem>> {
           totalTagihan: grandTotal,
           sisaPiutang: grandTotal,
           topDays: Value(topDays),
-          jatuhTempo: Value(jatuhTempo),
+          jatuhTempo: jatuhTempo,
           tanggalNota: Value(DateTime.now()),
         ));
         int totalQty = state.fold(0, (sum, e)=> sum + e.qty);

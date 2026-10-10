@@ -1,29 +1,30 @@
-// lib/features/inventory/barang_form_screen.dart - FINAL VARIASI + HARGA ECER/AGEN/MANUAL - TANPA DUMMY
+// lib/features/inventory/barang_form_screen.dart - FIX FINAL BUILD LULUS - tanpa dummy, variasi harga ecer/agen/manual
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart' as drift;
 import '../../core/database/local_database.dart';
 import 'providers/inventory_provider.dart';
 
 class BarangFormScreen extends ConsumerStatefulWidget {
-  const BarangFormScreen({super.key});
+  final BarangData? existing;
+  const BarangFormScreen({super.key, this.existing});
   @override ConsumerState<BarangFormScreen> createState() => _BarangFormScreenState();
 }
 
 class _BarangFormScreenState extends ConsumerState<BarangFormScreen> {
-  final namaCtrl = TextEditingController();
-  final skuCtrl = TextEditingController();
-  final merekCtrl = TextEditingController();
-  final stokCtrl = TextEditingController(text:"0");
-  final hppCtrl = TextEditingController(text:"0");
-  final ecerCtrl = TextEditingController(text:"0");
-  final agenCtrl = TextEditingController(text:"0");
-  final safetyCtrl = TextEditingController(text:"2");
+  late final namaCtrl = TextEditingController(text: widget.existing?.nama ?? "");
+  late final skuCtrl = TextEditingController(text: widget.existing?.sku ?? "");
+  late final merekCtrl = TextEditingController(text: widget.existing?.merek ?? "");
+  late final stokCtrl = TextEditingController(text: "${widget.existing?.stok ?? 0}");
+  late final hppCtrl = TextEditingController(text: "${widget.existing?.hppAverage ?? 0}");
+  late final ecerCtrl = TextEditingController(text: "${widget.existing?.hargaEcer ?? 0}");
+  late final agenCtrl = TextEditingController(text: "${widget.existing?.hargaAgen ?? 0}");
 
   List<Map<String,TextEditingController>> variasis = [];
 
   @override void initState(){
     super.initState();
-    _addVariasi(); // start 1 kosong, bukan dummy KAOS
+    _addVariasi();
   }
 
   void _addVariasi(){
@@ -48,7 +49,7 @@ class _BarangFormScreenState extends ConsumerState<BarangFormScreen> {
   @override Widget build(BuildContext context){
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
-      appBar: AppBar(title: const Text("Input Barang Baru"), backgroundColor: Colors.white),
+      appBar: AppBar(title: Text(widget.existing==null? "Input Barang Baru" : "Edit Barang"), backgroundColor: Colors.white),
       body: SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text("Data Barang Utama", style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height:8),
@@ -72,7 +73,6 @@ class _BarangFormScreenState extends ConsumerState<BarangFormScreen> {
           Expanded(child: TextField(controller: agenCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText:"Harga Agen", border: OutlineInputBorder(), isDense:true))),
         ]),
         const SizedBox(height:16),
-        // Variasi hijau
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.black12)),
@@ -108,31 +108,11 @@ class _BarangFormScreenState extends ConsumerState<BarangFormScreen> {
                     const SizedBox(width:6),
                     Expanded(child: _priceBox("Harga Agen", v["agen"]!, v["hpp"]!, const Color(0xFFEFF6FF))),
                     const SizedBox(width:6),
-                    Expanded(child: _priceBox("Harga Manual", v["manual"]!, v["hpp"]!, const Color(0xFFF9FAFB))),
+                    Expanded(child: _priceBox("Manual", v["manual"]!, v["hpp"]!, const Color(0xFFF9FAFB))),
                   ]),
                 ]),
               );
             }),
-            // Nota Masuk Harga Bertingkat
-            const SizedBox(height:16),
-            const Text("Nota Masuk — Harga Bertingkat", style: TextStyle(fontWeight: FontWeight.bold)),
-            const Text("Preview harga jual per variasi.", style: TextStyle(fontSize:11,color: Colors.black54)),
-            const SizedBox(height:8),
-            Container(
-              decoration: BoxDecoration(border: Border.all(color: Colors.black12), borderRadius: BorderRadius.circular(12)),
-              child: Column(children: [
-                Container(padding: const EdgeInsets.all(8), decoration: const BoxDecoration(color: Color(0xFF0F172A), borderRadius: BorderRadius.vertical(top: Radius.circular(12))), child: const Row(children: [Expanded(child: Text("BARANG", style: TextStyle(color: Colors.white,fontSize:11))), SizedBox(width:40, child: Text("QTY", style: TextStyle(color: Colors.white,fontSize:11))), Expanded(child: Text("HARGA JUAL", style: TextStyle(color: Colors.white,fontSize:11)))])),
-                ...variasis.map((v)=> Padding(padding: const EdgeInsets.all(8), child: Row(children: [
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(v["nama"]!.text.isEmpty? "—": v["nama"]!.text, style: const TextStyle(fontSize:12,fontWeight: FontWeight.bold)), Text("HPP Rp ${v["hpp"]!.text}", style: const TextStyle(fontSize:10,color: Colors.black54))])),
-                  SizedBox(width:40, child: Text(v["stok"]!.text, style: const TextStyle(fontSize:12))),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    Text("Ecer Rp ${v["ecer"]!.text}", style: const TextStyle(fontSize:11)),
-                    Text("Agen Rp ${v["agen"]!.text}", style: const TextStyle(fontSize:11,color: Colors.blue)),
-                    Text("Manual ${v["manual"]!.text.isEmpty? "-": "Rp ${v["manual"]!.text}"}", style: const TextStyle(fontSize:11)),
-                  ])),
-                ]))),
-              ]),
-            ),
           ]),
         ),
         const SizedBox(height:20),
@@ -163,30 +143,32 @@ class _BarangFormScreenState extends ConsumerState<BarangFormScreen> {
   Future<void> _simpan() async {
     final db = ref.read(localDbProvider);
     final inv = ref.read(inventoryControllerProvider);
-    // Simpan barang utama
-    final barangId = await db.barangDao.insertBarang(BarangCompanion.insert(
-      sku: skuCtrl.text.isEmpty? "SKU-${DateTime.now().millisecondsSinceEpoch}" : skuCtrl.text,
-      nama: namaCtrl.text,
-      merek: Value(merekCtrl.text),
-      stok: Value(int.tryParse(stokCtrl.text)??0),
-      hppAverage: Value(double.tryParse(hppCtrl.text)??0),
-      hargaEcer: Value(double.tryParse(ecerCtrl.text)??0),
-      hargaAgen: Value(double.tryParse(agenCtrl.text)??0),
-    ));
-    // Simpan variasi
-    for(var v in variasis){
-      if(v["nama"]!.text.isEmpty) continue;
-      await db.barangDao.insertVariasi(BarangVariasiCompanion.insert(
-        barangId: barangId,
-        variasiNama: v["nama"]!.text,
-        skuVariasi: Value(v["sku"]!.text),
-        stok: Value(int.tryParse(v["stok"]!.text)??0),
-        hargaEcer: Value(double.tryParse(v["ecer"]!.text)),
-        hargaAgen: Value(double.tryParse(v["agen"]!.text)),
-        keterangan: Value(v["manual"]!.text.isEmpty? null : "Manual:${v["manual"]!.text}"),
+    if(widget.existing==null){
+      final barangId = await db.barangDao.insertBarang(BarangCompanion.insert(
+        sku: skuCtrl.text.isEmpty? "SKU-${DateTime.now().millisecondsSinceEpoch}" : skuCtrl.text,
+        nama: namaCtrl.text,
+        merek: drift.Value(merekCtrl.text),
+        stok: drift.Value(int.tryParse(stokCtrl.text)??0),
+        hppAverage: drift.Value(double.tryParse(hppCtrl.text)??0),
+        hargaEcer: drift.Value(double.tryParse(ecerCtrl.text)??0),
+        hargaAgen: drift.Value(double.tryParse(agenCtrl.text)??0),
       ));
+      for(var v in variasis){
+        if(v["nama"]!.text.isEmpty) continue;
+        await db.barangDao.insertVariasi(BarangVariasiCompanion.insert(
+          barangId: barangId,
+          variasiNama: v["nama"]!.text,
+          skuVariasi: drift.Value(v["sku"]!.text),
+          stok: drift.Value(int.tryParse(v["stok"]!.text)??0),
+          hargaEcer: drift.Value(double.tryParse(v["ecer"]!.text)),
+          hargaAgen: drift.Value(double.tryParse(v["agen"]!.text)),
+          keterangan: drift.Value(v["manual"]!.text.isEmpty? null : "Manual:${v["manual"]!.text}"),
+        ));
+      }
+    } else {
+      await db.barangDao.updateBarang(widget.existing!.copyWith(nama: namaCtrl.text, sku: skuCtrl.text, merek: drift.Value(merekCtrl.text), stok: int.tryParse(stokCtrl.text)??0, hppAverage: double.tryParse(hppCtrl.text)??0, hargaEcer: double.tryParse(ecerCtrl.text)??0, hargaAgen: double.tryParse(agenCtrl.text)??0));
     }
-    await inv.refreshAll();
+    ref.invalidate(barangListProvider);
     if(mounted) Navigator.pop(context);
   }
 }

@@ -1,85 +1,192 @@
-// lib/features/inventory/barang_form_screen.dart - FINAL FIX sku nullable + updatedAt
+// lib/features/inventory/barang_form_screen.dart - FINAL VARIASI + HARGA ECER/AGEN/MANUAL - TANPA DUMMY
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:drift/drift.dart' as drift;
 import '../../core/database/local_database.dart';
 import 'providers/inventory_provider.dart';
 
 class BarangFormScreen extends ConsumerStatefulWidget {
-  final BarangData? existing;
-  const BarangFormScreen({super.key, this.existing});
+  const BarangFormScreen({super.key});
   @override ConsumerState<BarangFormScreen> createState() => _BarangFormScreenState();
 }
+
 class _BarangFormScreenState extends ConsumerState<BarangFormScreen> {
-  final _formKey = GlobalKey<FormState>();
-  late TextEditingController skuC,namaC,merekC,kecilC,besarC,konvC,ecerC,agenC,safetyC,supplierC;
-  SupplierData? _selectedSupplier;
-  List<Map<String,TextEditingController>> _variasi=[];
-  List<BarangVariasiData> _existingVariasi=[];
+  final namaCtrl = TextEditingController();
+  final skuCtrl = TextEditingController();
+  final merekCtrl = TextEditingController();
+  final stokCtrl = TextEditingController(text:"0");
+  final hppCtrl = TextEditingController(text:"0");
+  final ecerCtrl = TextEditingController(text:"0");
+  final agenCtrl = TextEditingController(text:"0");
+  final safetyCtrl = TextEditingController(text:"2");
+
+  List<Map<String,TextEditingController>> variasis = [];
+
   @override void initState(){
     super.initState();
-    final b=widget.existing;
-    skuC=TextEditingController(text:b?.sku??''); namaC=TextEditingController(text:b?.nama??''); merekC=TextEditingController(text:b?.merek??''); supplierC=TextEditingController(text:b?.supplierNama??'');
-    kecilC=TextEditingController(text:b?.satuanTerkecil??'Pcs'); besarC=TextEditingController(text:b?.satuanBesar??'Set'); konvC=TextEditingController(text:(b?.konversi??1).toString());
-    ecerC=TextEditingController(text:(b?.hargaEcer??0).toStringAsFixed(0)); agenC=TextEditingController(text:(b?.hargaAgen??0).toStringAsFixed(0)); safetyC=TextEditingController(text:(b?.safetyStock??2).toString());
-    skuC.addListener(_autoFillBiru);
-    if(b!=null) _loadVariasi(b.id);
+    _addVariasi(); // start 1 kosong, bukan dummy KAOS
   }
-  Future<void> _loadVariasi(int id) async { final db=ref.read(localDbProvider); final list=await db.barangDao.getVariasi(id); if(mounted) setState(()=>_existingVariasi=list); }
-  Future<void> _autoFillBiru() async {
-    if(widget.existing!=null) return;
-    final sku=skuC.text.trim(); if(sku.length<3) return;
-    final db=ref.read(localDbProvider); final ex=await db.barangDao.getBySku(sku);
-    if(ex!=null && mounted){ setState((){ namaC.text=ex.nama; merekC.text=ex.merek??''; supplierC.text=ex.supplierNama??''; kecilC.text=ex.satuanTerkecil; besarC.text=ex.satuanBesar; konvC.text=ex.konversi.toString(); }); }
+
+  void _addVariasi(){
+    setState((){
+      variasis.add({
+        "nama": TextEditingController(),
+        "sku": TextEditingController(),
+        "stok": TextEditingController(text:"0"),
+        "hpp": TextEditingController(text:"0"),
+        "ecer": TextEditingController(text:"0"),
+        "agen": TextEditingController(text:"0"),
+        "manual": TextEditingController(text:"0"),
+      });
+    });
   }
-  void _addVariasi(){ setState(()=>_variasi.add({'nama':TextEditingController(),'sku':TextEditingController(),'stok':TextEditingController(text:'0')})); }
-  double margin(double jual,double hpp)=>hpp==0?0:(jual-hpp)/hpp*100;
-  @override void dispose(){ skuC.removeListener(_autoFillBiru); skuC.dispose(); namaC.dispose(); merekC.dispose(); supplierC.dispose(); kecilC.dispose(); besarC.dispose(); konvC.dispose(); ecerC.dispose(); agenC.dispose(); safetyC.dispose(); for(var v in _variasi){ v['nama']!.dispose(); v['sku']!.dispose(); v['stok']!.dispose(); } super.dispose(); }
+
+  double _margin(double hpp, double jual){
+    if(hpp==0 || jual==0) return 0;
+    return ((jual-hpp)/hpp*100);
+  }
+
   @override Widget build(BuildContext context){
-    final b=widget.existing; final hpp=b?.hppAverage??0;
-    return Scaffold(appBar: AppBar(title: Text(b==null?'Input Barang Baru':'Edit Barang'), backgroundColor: Colors.white, elevation:0, surfaceTintColor: Colors.white, leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: ()=>Navigator.pop(context))), backgroundColor: const Color(0xFFF8FAFC),
-      body: Form(key: _formKey, child: ListView(padding: const EdgeInsets.all(16), children: [
-        TextFormField(controller: skuC, decoration: const InputDecoration(labelText: 'SKU / Kode', border: OutlineInputBorder())),
-        const SizedBox(height:12),
-        TextFormField(controller: namaC, decoration: const InputDecoration(labelText: 'Nama Perkakas *', border: OutlineInputBorder()), validator: (v)=>v!.isEmpty?'Wajib':null),
-        const SizedBox(height:12),
-        TextFormField(controller: merekC, decoration: const InputDecoration(labelText: 'Merek (Bosch, Makita)', border: OutlineInputBorder())),
-        const SizedBox(height:12),
-        Autocomplete<SupplierData>(
-          displayStringForOption: (s)=>s.nama,
-          optionsBuilder: (v) async { final all=await ref.read(localDbProvider).supplierDao.getAll(); if(v.text.isEmpty) return all; return all.where((e)=>e.nama.toLowerCase().contains(v.text.toLowerCase())); },
-          onSelected: (s)=>setState((){_selectedSupplier=s; supplierC.text=s.nama;}),
-          fieldViewBuilder: (c,ctrl,f,_){ if(supplierC.text.isNotEmpty && ctrl.text.isEmpty) ctrl.text=supplierC.text; return TextField(controller: ctrl, focusNode: f, decoration: const InputDecoration(labelText: 'Supplier - auto nyambung', border: OutlineInputBorder(), prefixIcon: Icon(Icons.local_shipping)), onChanged: (v)=>supplierC.text=v); },
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9FAFB),
+      appBar: AppBar(title: const Text("Input Barang Baru"), backgroundColor: Colors.white),
+      body: SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text("Data Barang Utama", style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height:8),
+        TextField(controller: namaCtrl, decoration: const InputDecoration(labelText:"Nama Barang", border: OutlineInputBorder(), isDense:true)),
+        const SizedBox(height:8),
+        Row(children: [
+          Expanded(child: TextField(controller: skuCtrl, decoration: const InputDecoration(labelText:"SKU", border: OutlineInputBorder(), isDense:true))),
+          const SizedBox(width:8),
+          Expanded(child: TextField(controller: merekCtrl, decoration: const InputDecoration(labelText:"Merek", border: OutlineInputBorder(), isDense:true))),
+        ]),
+        const SizedBox(height:8),
+        Row(children: [
+          Expanded(child: TextField(controller: stokCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText:"Stok", border: OutlineInputBorder(), isDense:true))),
+          const SizedBox(width:8),
+          Expanded(child: TextField(controller: hppCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText:"HPP / Harga Beli", border: OutlineInputBorder(), isDense:true))),
+        ]),
+        const SizedBox(height:8),
+        Row(children: [
+          Expanded(child: TextField(controller: ecerCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText:"Harga Ecer", border: OutlineInputBorder(), isDense:true))),
+          const SizedBox(width:8),
+          Expanded(child: TextField(controller: agenCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText:"Harga Agen", border: OutlineInputBorder(), isDense:true))),
+        ]),
+        const SizedBox(height:16),
+        // Variasi hijau
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.black12)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text("Input Variasi + Harga (${variasis.length} SKU)", style: const TextStyle(fontWeight: FontWeight.bold, fontSize:16)),
+              TextButton(onPressed: _addVariasi, child: const Text("+ Tambah Variasi")),
+            ]),
+            ...List.generate(variasis.length, (i){
+              final v = variasis[i];
+              return Container(
+                margin: const EdgeInsets.only(bottom:12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(border: Border.all(color: Colors.black12), borderRadius: BorderRadius.circular(12)),
+                child: Column(children: [
+                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                    Text("Variasi #${i+1}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                    InkWell(onTap: ()=> setState(()=> variasis.removeAt(i)), child: const Text("Hapus", style: TextStyle(color: Colors.red, fontSize:12))),
+                  ]),
+                  const SizedBox(height:8),
+                  TextField(controller: v["nama"]!, decoration: const InputDecoration(labelText:"Nama Variasi", border: OutlineInputBorder(), isDense:true)),
+                  const SizedBox(height:8),
+                  Row(children: [
+                    Expanded(child: TextField(controller: v["sku"]!, decoration: const InputDecoration(labelText:"SKU Variasi", border: OutlineInputBorder(), isDense:true))),
+                    const SizedBox(width:8),
+                    Expanded(child: TextField(controller: v["stok"]!, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText:"Stok", border: OutlineInputBorder(), isDense:true))),
+                  ]),
+                  const SizedBox(height:8),
+                  TextField(controller: v["hpp"]!, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText:"HPP / Harga Beli", border: OutlineInputBorder(), isDense:true)),
+                  const SizedBox(height:8),
+                  Row(children: [
+                    Expanded(child: _priceBox("Harga Ecer", v["ecer"]!, v["hpp"]!, const Color(0xFFFFF7ED))),
+                    const SizedBox(width:6),
+                    Expanded(child: _priceBox("Harga Agen", v["agen"]!, v["hpp"]!, const Color(0xFFEFF6FF))),
+                    const SizedBox(width:6),
+                    Expanded(child: _priceBox("Harga Manual", v["manual"]!, v["hpp"]!, const Color(0xFFF9FAFB))),
+                  ]),
+                ]),
+              );
+            }),
+            // Nota Masuk Harga Bertingkat
+            const SizedBox(height:16),
+            const Text("Nota Masuk — Harga Bertingkat", style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text("Preview harga jual per variasi.", style: TextStyle(fontSize:11,color: Colors.black54)),
+            const SizedBox(height:8),
+            Container(
+              decoration: BoxDecoration(border: Border.all(color: Colors.black12), borderRadius: BorderRadius.circular(12)),
+              child: Column(children: [
+                Container(padding: const EdgeInsets.all(8), decoration: const BoxDecoration(color: Color(0xFF0F172A), borderRadius: BorderRadius.vertical(top: Radius.circular(12))), child: const Row(children: [Expanded(child: Text("BARANG", style: TextStyle(color: Colors.white,fontSize:11))), SizedBox(width:40, child: Text("QTY", style: TextStyle(color: Colors.white,fontSize:11))), Expanded(child: Text("HARGA JUAL", style: TextStyle(color: Colors.white,fontSize:11)))])),
+                ...variasis.map((v)=> Padding(padding: const EdgeInsets.all(8), child: Row(children: [
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(v["nama"]!.text.isEmpty? "—": v["nama"]!.text, style: const TextStyle(fontSize:12,fontWeight: FontWeight.bold)), Text("HPP Rp ${v["hpp"]!.text}", style: const TextStyle(fontSize:10,color: Colors.black54))])),
+                  SizedBox(width:40, child: Text(v["stok"]!.text, style: const TextStyle(fontSize:12))),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                    Text("Ecer Rp ${v["ecer"]!.text}", style: const TextStyle(fontSize:11)),
+                    Text("Agen Rp ${v["agen"]!.text}", style: const TextStyle(fontSize:11,color: Colors.blue)),
+                    Text("Manual ${v["manual"]!.text.isEmpty? "-": "Rp ${v["manual"]!.text}"}", style: const TextStyle(fontSize:11)),
+                  ])),
+                ]))),
+              ]),
+            ),
+          ]),
         ),
-        const SizedBox(height:12),
-        Row(children: [Expanded(child: TextFormField(controller: kecilC, decoration: const InputDecoration(labelText: 'Satuan Kecil', border: OutlineInputBorder()))), const SizedBox(width:12), Expanded(child: TextFormField(controller: besarC, decoration: const InputDecoration(labelText: 'Satuan Besar', border: OutlineInputBorder())))]),
-        const SizedBox(height:12),
-        TextFormField(controller: konvC, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Konversi isi per besar', border: OutlineInputBorder())),
-        const SizedBox(height:12),
-        if(b==null) Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(10)), child: const Text('Stok Awal = 0 (auto via Nota Masuk)', style: TextStyle(fontSize:12)))
-        else Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(10)), child: Text('Stok saat ini: ${b.stok} Pcs | HPP: Rp ${b.hppAverage.toStringAsFixed(0)}', style: const TextStyle(fontSize:12))),
-        const SizedBox(height:12),
-        TextFormField(controller: safetyC, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Safety Stock', border: OutlineInputBorder())),
-        const SizedBox(height:12),
-        if(b!=null) Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFFF0FDF4), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.green.shade200)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('HPP AUTO (Moving Average) - LOCKED', style: TextStyle(fontSize:11, fontWeight: FontWeight.bold, color: Colors.green)), Text('Rp ${b.hppAverage.toStringAsFixed(0)}', style: const TextStyle(fontSize:22, fontWeight: FontWeight.w800)), Text('Update: ${b.updatedAt.day}/${b.updatedAt.month}/${b.updatedAt.year}', style: const TextStyle(fontSize:11, color: Colors.grey))])),
-        const SizedBox(height:12),
-        TextFormField(controller: ecerC, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: 'Harga Ecer ${ecerC.text.isNotEmpty?"(${margin(double.tryParse(ecerC.text)??0,hpp).toStringAsFixed(0)}% dari HPP)":""}', border: const OutlineInputBorder()), onChanged: (_)=>setState((){})),
-        const SizedBox(height:12),
-        TextFormField(controller: agenC, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: 'Harga Agen ${agenC.text.isNotEmpty?"(${margin(double.tryParse(agenC.text)??0,hpp).toStringAsFixed(0)}% dari HPP)":""}', border: const OutlineInputBorder()), onChanged: (_)=>setState((){})),
         const SizedBox(height:20),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(b==null?'Variasi Unlimited':'Variasi (${_existingVariasi.length})', style: const TextStyle(fontWeight: FontWeight.bold)), TextButton.icon(onPressed: _addVariasi, icon: const Icon(Icons.add), label: const Text('Tambah Variasi'))]),
-        if(_existingVariasi.isNotEmpty) ..._existingVariasi.map((v)=> Container(margin: const EdgeInsets.only(bottom:8), padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white, border: Border.all(color: const Color(0xFFE2E8F0)), borderRadius: BorderRadius.circular(10)), child: Row(children: [Expanded(child: Text('${v.variasiNama} • SKU: ${v.skuVariasi??'-'} • Stok ${v.stok}')), IconButton(icon: const Icon(Icons.delete_outline, size:18), onPressed: () async { final db=ref.read(localDbProvider); await (db.delete(db.barangVariasi)..where((t)=>t.id.equals(v.id))).go(); _loadVariasi(b!.id); })]))),
-        ..._variasi.asMap().entries.map((e){ final idx=e.key; final v=e.value; return Container(margin: const EdgeInsets.only(bottom:10), padding: const EdgeInsets.all(12), decoration: BoxDecoration(border: Border.all(color: const Color(0xFFE2E8F0)), borderRadius: BorderRadius.circular(12), color: Colors.white), child: Column(children: [Row(children: [Text('Variasi Baru #${idx+1}', style: const TextStyle(fontWeight: FontWeight.bold)), const Spacer(), IconButton(icon: const Icon(Icons.close), onPressed: ()=>setState(()=>_variasi.removeAt(idx)))]), TextField(controller: v['nama'], decoration: const InputDecoration(labelText: 'Nama Variasi', border: OutlineInputBorder(), isDense:true)), const SizedBox(height:8), Row(children: [Expanded(child: TextField(controller: v['sku'], decoration: const InputDecoration(labelText: 'SKU Variasi', border: OutlineInputBorder(), isDense:true))), const SizedBox(width:8), SizedBox(width:80, child: TextField(controller: v['stok'], keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Stok', border: OutlineInputBorder(), isDense:true)))])])); }),
-        const SizedBox(height:24),
-        ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0F172A), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical:14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: () async {
-          if(!_formKey.currentState!.validate()) return; final db=ref.read(localDbProvider);
-          final skuVal = skuC.text.trim().isEmpty ? 'SKU-${DateTime.now().millisecondsSinceEpoch}' : skuC.text.trim();
-          final comp=BarangCompanion(sku: drift.Value(skuVal), nama: drift.Value(namaC.text.trim()), merek: drift.Value(merekC.text.isEmpty?null:merekC.text.trim()), supplierNama: drift.Value(supplierC.text.isEmpty?null:supplierC.text.trim()), supplierId: _selectedSupplier==null? const drift.Value.absent(): drift.Value(_selectedSupplier!.id), satuanTerkecil: drift.Value(kecilC.text), satuanBesar: drift.Value(besarC.text), konversi: drift.Value(int.tryParse(konvC.text)??1), stok: b==null? const drift.Value(0): const drift.Value.absent(), safetyStock: drift.Value(int.tryParse(safetyC.text)??2), hppAverage: b==null? const drift.Value(0): const drift.Value.absent(), hargaEcer: drift.Value(double.tryParse(ecerC.text)??0), hargaAgen: drift.Value(double.tryParse(agenC.text)??0), updatedAt: drift.Value(DateTime.now()));
-          int barangId; if(b==null){ barangId=await db.barangDao.insertBarang(comp); } else { await (db.update(db.barang)..where((t)=>t.id.equals(b.id))).write(comp); barangId=b.id; }
-          for(var v in _variasi){ if(v['nama']!.text.trim().isEmpty) continue; await db.barangDao.insertVariasi(BarangVariasiCompanion.insert(barangId: barangId, variasiNama: v['nama']!.text.trim(), skuVariasi: drift.Value(v['sku']!.text.trim().isEmpty?null:v['sku']!.text.trim()), stok: drift.Value(int.tryParse(v['stok']!.text)??0))); }
-          if(context.mounted) Navigator.pop(context);
-        }, child: Text(b==null?'SIMPAN BARANG':'UPDATE BARANG'))
+        SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _simpan, style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)), padding: const EdgeInsets.symmetric(vertical:14)), child: const Text("Simpan Barang"))),
       ])),
     );
+  }
+
+  Widget _priceBox(String label, TextEditingController ctrl, TextEditingController hppCtrl, Color bg){
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.black12)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: const TextStyle(fontSize:10,fontWeight: FontWeight.bold)),
+        const SizedBox(height:4),
+        TextField(controller: ctrl, keyboardType: TextInputType.number, decoration: const InputDecoration(isDense:true, border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal:8,vertical:6)), style: const TextStyle(fontSize:12)),
+        const SizedBox(height:4),
+        ValueListenableBuilder(valueListenable: ctrl, builder: (ctx,_,__){
+          final hpp = double.tryParse(hppCtrl.text)??0;
+          final jual = double.tryParse(ctrl.text)??0;
+          final m = _margin(hpp,jual);
+          return Text("Margin ${m.toStringAsFixed(1)}%", style: const TextStyle(fontSize:10,color: Colors.black54));
+        }),
+      ]),
+    );
+  }
+
+  Future<void> _simpan() async {
+    final db = ref.read(localDbProvider);
+    final inv = ref.read(inventoryControllerProvider);
+    // Simpan barang utama
+    final barangId = await db.barangDao.insertBarang(BarangCompanion.insert(
+      sku: skuCtrl.text.isEmpty? "SKU-${DateTime.now().millisecondsSinceEpoch}" : skuCtrl.text,
+      nama: namaCtrl.text,
+      merek: Value(merekCtrl.text),
+      stok: Value(int.tryParse(stokCtrl.text)??0),
+      hppAverage: Value(double.tryParse(hppCtrl.text)??0),
+      hargaEcer: Value(double.tryParse(ecerCtrl.text)??0),
+      hargaAgen: Value(double.tryParse(agenCtrl.text)??0),
+    ));
+    // Simpan variasi
+    for(var v in variasis){
+      if(v["nama"]!.text.isEmpty) continue;
+      await db.barangDao.insertVariasi(BarangVariasiCompanion.insert(
+        barangId: barangId,
+        variasiNama: v["nama"]!.text,
+        skuVariasi: Value(v["sku"]!.text),
+        stok: Value(int.tryParse(v["stok"]!.text)??0),
+        hargaEcer: Value(double.tryParse(v["ecer"]!.text)),
+        hargaAgen: Value(double.tryParse(v["agen"]!.text)),
+        keterangan: Value(v["manual"]!.text.isEmpty? null : "Manual:${v["manual"]!.text}"),
+      ));
+    }
+    await inv.refreshAll();
+    if(mounted) Navigator.pop(context);
   }
 }

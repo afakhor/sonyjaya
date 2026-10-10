@@ -1,4 +1,4 @@
-// lib/features/hutang/hutang_screen.dart - FINAL BUILD FIX - IMPORT BENAR, localDbProvider BENAR
+// lib/features/hutang/hutang_screen.dart - FINAL FIX - tidak pakai tanggalPo/id langsung dari Object? pakai typed
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/database/local_database.dart';
@@ -41,7 +41,7 @@ class HutangScreen extends ConsumerWidget {
                 if(listHutang.isEmpty) return const Center(child: Text('Tidak ada hutang supplier.'));
                 return ListView.builder(padding: const EdgeInsets.all(16), itemCount: listHutang.length, itemBuilder: (_, idx){
                   final hutang = listHutang[idx];
-                  return Container(margin: const EdgeInsets.only(bottom:12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE2E8F0))), child: ExpansionTile(title: Text(hutang.namaSupplier, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text('${hutang.jumlahPo} PO Belum Lunas'), trailing: Text('Rp ${hutang.totalHutang.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize:16)), children: hutang.daftarPo.map((po){ final tgl = po.tanggalPo.toLocal().toString().split('.')[0]; return ListTile(dense:true, title: Text('PO #${po.id} - $tgl'), subtitle: Text('Status: ${po.statusBayar}'), trailing: Text('Rp ${po.totalKeseluruhan.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600))); }).toList()));
+                  return Container(margin: const EdgeInsets.only(bottom:12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE2E8F0))), child: ExpansionTile(title: Text(hutang.namaSupplier, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: Text('${hutang.jumlahPo} PO Belum Lunas'), trailing: Text('Rp ${hutang.totalHutang.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize:16)), children: hutang.daftarPo.map<Widget>((po){ final tgl = po.tanggalPo.toLocal().toString().split('.')[0]; return ListTile(dense:true, title: Text('PO #${po.id} - $tgl'), subtitle: Text('Status: ${po.statusBayar}'), trailing: Text('Rp ${po.totalKeseluruhan.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600))); }).toList()));
                 });
               },
               loading: ()=>const Center(child: CircularProgressIndicator()),

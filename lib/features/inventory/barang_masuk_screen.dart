@@ -100,7 +100,7 @@ class _BarangMasukScreenState extends ConsumerState<BarangMasukScreen> {
               }
             });
             ref.invalidate(barangListProvider);
-            ref.invalidate(hutangSupplierListProvider);
+            // hutang refresh handled di hutang screen via stream
             if(mounted) Navigator.pop(context);
           },
           style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)), padding: const EdgeInsets.symmetric(vertical:14)),

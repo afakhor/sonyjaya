@@ -87,7 +87,7 @@ class _BarangFormScreenState extends ConsumerState<BarangFormScreen> {
                   Expanded(child: TextField(controller: satuanBesarCtrl, decoration: _decSmall("Satuan Besar").copyWith(hintText:"Dus"))),
                 ]),
                 const SizedBox(height:6),
-                ValueListenableBuilder<TextEditingValue>(valueListenable: konversiCtrl, builder: (ctx,val,__){
+                ValueListenableBuilder(textListenable: konversiCtrl, builder: (ctx,_,__){
                   return Text("Contoh: 1 ${satuanBesarCtrl.text.isEmpty? "Dus" : satuanBesarCtrl.text} = ${konversiCtrl.text.isEmpty? "1" : konversiCtrl.text} ${satuanKecilCtrl.text.isEmpty? "Pcs" : satuanKecilCtrl.text}", style: const TextStyle(fontSize:10,color: Colors.black54));
                 }),
               ]),
@@ -233,13 +233,17 @@ class _BarangFormScreenState extends ConsumerState<BarangFormScreen> {
         hppAverage: double.tryParse(hppCtrl.text)??0,
         hargaEcer: double.tryParse(ecerCtrl.text)??0,
         hargaAgen: double.tryParse(agenCtrl.text)??0,
-        satuanTerkecil: drift.Value(satuanKecilCtrl.text),
-        satuanBesar: drift.Value(satuanBesarCtrl.text),
+        satuanTerkecil: satuanKecilCtrl.text,
+        satuanBesar: satuanBesarCtrl.text,
         konversi: int.tryParse(konversiCtrl.text)??1,
-        satuan: drift.Value(satuanKecilCtrl.text),
+        satuan: satuanKecilCtrl.text,
       ));
     }
     ref.invalidate(barangListProvider);
     if(mounted) Navigator.pop(context);
   }
+}
+
+extension TextListenable on TextEditingController {
+  ValueListenableBuilder<String> get textListenable => ValueListenableBuilder(valueListenable: this, builder: (a, b, c) => const SizedBox());
 }

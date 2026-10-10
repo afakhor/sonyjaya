@@ -1,5 +1,5 @@
-// FIX COMPAT: lib/features/supplier/providers/supplier_provider_v8.dart -> copy dari supplier_provider.dart
-// Biar import lama '../supplier/providers/supplier_provider_v8.dart' tidak error
+// lib/features/supplier/providers/supplier_provider_v8.dart - COMPAT COPY
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/database/local_database.dart';
 import '../../inventory/providers/inventory_provider.dart';
@@ -10,6 +10,7 @@ final supplierStreamProvider = StreamProvider<List<SupplierData>>((ref) {
   return db.supplierDao.watchAll();
 });
 final supplierListProvider = supplierStreamProvider;
+
 class HutangColorHelper {
   static Color getDotColor(HutangSupplierData h) {
     if (h.statusBayar == 'LUNAS') return const Color(0xFF10B981);
@@ -22,10 +23,10 @@ class HutangColorHelper {
   static String getLabel(HutangSupplierData h) {
     if (h.statusBayar == 'LUNAS') return 'LUNAS';
     final diff = DateTime.now().difference(h.tanggalNota).inDays;
-    if (diff < 30) return 'TEMPO ${diff}h';
-    if (diff == 30) return 'JATUH TEMPO HARI INI';
-    if (diff >= 60) return 'OVERDUE ${diff}h';
-    return 'TEMPO ${diff}h';
+    if (diff < 30) return 'HITAM <30h';
+    if (diff == 30) return 'KUNING 30h';
+    if (diff >= 60) return 'MERAH ${diff}h';
+    return 'HIJAU ${diff}h';
   }
 }
 class HutangWarna {

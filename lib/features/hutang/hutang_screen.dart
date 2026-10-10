@@ -1,6 +1,7 @@
-// lib/features/hutang/hutang_screen.dart - FINAL FIX KALENDER + MULTI NOTA PER TANGGAL + TANPA DUMMY
+// lib/features/hutang/hutang_screen.dart - FINAL FIX BUILD LULUS - Kalender + Multi Nota + Value + HutangSupplierData
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart' as drift;
 import '../../core/database/local_database.dart';
 import '../inventory/providers/inventory_provider.dart';
 import 'providers/hutang_provider.dart';
@@ -18,14 +19,13 @@ class _HutangScreenState extends ConsumerState<HutangScreen> {
   String fmtRp(double n) => "Rp ${n.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}";
   bool isSameDay(DateTime a, DateTime b) => a.year==b.year && a.month==b.month && a.day==b.day;
 
-  // Status warna: hitam <30, kuning = jatuh tempo hari ini, merah 60+ lewat, hijau kosong
   Color statusColor(HutangSupplierData h){
     final diff = today.difference(h.tanggalNota).inDays;
     if(h.statusBayar=='LUNAS') return const Color(0xFF22C55E);
-    if(diff>=60) return const Color(0xFFEF4444); // merah
+    if(diff>=60) return const Color(0xFFEF4444);
     final tempoDiff = h.jatuhTempo.difference(today).inDays;
-    if(tempoDiff==0) return const Color(0xFFFACC15); // kuning jatuh tempo hari ini
-    return const Color(0xFF0F172A); // hitam <30
+    if(tempoDiff==0) return const Color(0xFFFACC15);
+    return const Color(0xFF0F172A);
   }
   String statusLabel(HutangSupplierData h){
     final diff = today.difference(h.tanggalNota).inDays;
@@ -44,9 +44,13 @@ class _HutangScreenState extends ConsumerState<HutangScreen> {
     return map;
   }
 
-  @override
-  Widget build(BuildContext context){
-    final hutangAsync = ref.watch(hutangListProvider);
+  String _monthName(int m){
+    const names = ["","Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+    return names[m];
+  }
+
+  @override Widget build(BuildContext context){
+    final hutangAsync = ref.watch(hutangSupplierListProvider);
     return Scaffold(
       backgroundColor: const Color(0xFFF6F1EB),
       body: hutangAsync.when(
@@ -54,11 +58,9 @@ class _HutangScreenState extends ConsumerState<HutangScreen> {
           final inMonth = hutangs.where((h)=> h.tanggalNota.year==viewMonth.year && h.tanggalNota.month==viewMonth.month).toList();
           final grouped = groupByDate(hutangs);
           final totalBulan = inMonth.fold<double>(0,(s,h)=> s+h.totalTagihan);
-
-          // calendar days
           final firstDay = DateTime(viewMonth.year, viewMonth.month, 1);
           final lastDay = DateTime(viewMonth.year, viewMonth.month+1, 0);
-          final startWeekday = firstDay.weekday % 7; // 0=Min
+          final startWeekday = firstDay.weekday % 7;
           final days = <DateTime?>[];
           for(int i=0;i<startWeekday;i++) days.add(null);
           for(int d=1; d<=lastDay.day; d++) days.add(DateTime(viewMonth.year, viewMonth.month, d));
@@ -66,12 +68,10 @@ class _HutangScreenState extends ConsumerState<HutangScreen> {
           return CustomScrollView(
             slivers: [
               SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.fromLTRB(16,16,16,8), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                // Kalender card
                 Container(
                   decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.black.withOpacity(0.08))),
                   padding: const EdgeInsets.all(12),
                   child: Column(children: [
-                    // Nav hijau
                     Row(children: [
                       Container(
                         decoration: BoxDecoration(border: Border.all(color: Colors.black12), borderRadius: BorderRadius.circular(24)),
@@ -87,7 +87,6 @@ class _HutangScreenState extends ConsumerState<HutangScreen> {
                         Text("${selectedDate.day}/${selectedDate.month}/${selectedDate.year} hari ini", style: const TextStyle(fontSize:10,color: Colors.black54)),
                       ]),
                       const Spacer(),
-                      // Kuning: hari ini hanya kembali ke hari ini kalender bulan ini
                       InkWell(
                         onTap: ()=> setState((){
                           viewMonth = DateTime(today.year, today.month,1);
@@ -118,26 +117,18 @@ class _HutangScreenState extends ConsumerState<HutangScreen> {
                         return InkWell(
                           onTap: (){
                             setState(()=> selectedDate = date);
-                            if(list.isNotEmpty){
-                              _showDetailMulti(context, date, list);
-                            }
+                            if(list.isNotEmpty) _showDetailMulti(context, date, list);
                           },
                           child: Container(
-                            decoration: BoxDecoration(
-                              color: isSel? Colors.black : const Color(0xFFFAF7F2),
-                              borderRadius: BorderRadius.circular(14),
-                              border: isToday && !isSel? Border.all(color: Colors.black26): null,
-                            ),
+                            decoration: BoxDecoration(color: isSel? Colors.black : const Color(0xFFFAF7F2), borderRadius: BorderRadius.circular(14), border: isToday && !isSel? Border.all(color: Colors.black26): null),
                             child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                               Text("${date.day}", style: TextStyle(fontSize:14,fontWeight: FontWeight.bold, color: isSel? Colors.white: Colors.black)),
                               const SizedBox(height:2),
-                              if(list.isEmpty)
-                                Container(width:5,height:5,decoration: const BoxDecoration(color: Color(0xFF86EFAC), shape: BoxShape.circle))
-                              else
-                                Wrap(spacing:2, children: [
-                                  ...list.take(3).map((h)=> Container(width:6,height:6,decoration: BoxDecoration(color: isSel? Colors.white : statusColor(h), shape: BoxShape.circle))),
-                                  if(list.length>1) Container(padding: const EdgeInsets.all(2), decoration: BoxDecoration(color: Colors.black, shape: BoxShape.circle), child: Text("${list.length}", style: const TextStyle(fontSize:7,color: Colors.white))),
-                                ]),
+                              if(list.isEmpty) Container(width:5,height:5,decoration: const BoxDecoration(color: Color(0xFF86EFAC), shape: BoxShape.circle))
+                              else Wrap(spacing:2, children: [
+                                ...list.take(3).map((h)=> Container(width:6,height:6,decoration: BoxDecoration(color: isSel? Colors.white : statusColor(h), shape: BoxShape.circle))),
+                                if(list.length>1) Container(padding: const EdgeInsets.all(2), decoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle), child: Text("${list.length}", style: const TextStyle(fontSize:7,color: Colors.white))),
+                              ]),
                             ]),
                           ),
                         );
@@ -156,21 +147,23 @@ class _HutangScreenState extends ConsumerState<HutangScreen> {
                   ]),
                 ),
                 const SizedBox(height:16),
-                // NOTA BULAN INI - biru ngikut hijau
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                   Text("NOTA ${_monthName(viewMonth.month).toUpperCase()} ${viewMonth.year}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize:16)),
                   Container(padding: const EdgeInsets.symmetric(horizontal:10,vertical:4), decoration: BoxDecoration(color: const Color(0xFF3B82F6), borderRadius: BorderRadius.circular(24)), child: Text("${_monthName(viewMonth.month).toUpperCase()} ${viewMonth.year}", style: const TextStyle(color: Colors.white,fontSize:10))),
                 ]),
+                const SizedBox(height:4),
+                Text("Total ${fmtRp(totalBulan)} • ${inMonth.length} nota", style: const TextStyle(fontSize:11,color: Colors.black54)),
               ]))),
               SliverList.builder(
                 itemCount: inMonth.length,
                 itemBuilder: (_,idx){
                   final h = inMonth[idx];
-                  final isMulti = grouped["${h.tanggalNota.year}-${h.tanggalNota.month.toString().padLeft(2,'0')}-${h.tanggalNota.day.toString().padLeft(2,'0')}"]!.length>1;
+                  final key = "${h.tanggalNota.year}-${h.tanggalNota.month.toString().padLeft(2,'0')}-${h.tanggalNota.day.toString().padLeft(2,'0')}";
+                  final isMulti = (grouped[key]?.length ?? 0)>1;
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal:16,vertical:4),
                     child: InkWell(
-                      onTap: ()=> _showDetailMulti(context, h.tanggalNota, grouped["${h.tanggalNota.year}-${h.tanggalNota.month.toString().padLeft(2,'0')}-${h.tanggalNota.day.toString().padLeft(2,'0')}"]!),
+                      onTap: ()=> _showDetailMulti(context, h.tanggalNota, grouped[key]!),
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: Colors.black12)),
@@ -178,7 +171,7 @@ class _HutangScreenState extends ConsumerState<HutangScreen> {
                           Container(width:44,height:44,decoration: BoxDecoration(color: statusColor(h), borderRadius: BorderRadius.circular(12)), child: Center(child: Text("${h.tanggalNota.day}", style: TextStyle(color: statusColor(h)==const Color(0xFFFACC15)? Colors.black: Colors.white, fontWeight: FontWeight.bold)))),
                           const SizedBox(width:10),
                           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Row(children: [Flexible(child: Text(h.supplierNama, style: const TextStyle(fontWeight: FontWeight.bold, fontSize:13), overflow: TextOverflow.ellipsis)), if(isMulti) Container(margin: const EdgeInsets.only(left:4), padding: const EdgeInsets.symmetric(horizontal:6,vertical:2), decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)), child: Text("${grouped["${h.tanggalNota.year}-${h.tanggalNota.month.toString().padLeft(2,'0')}-${h.tanggalNota.day.toString().padLeft(2,'0')}"]!.length} nota", style: const TextStyle(color: Colors.white,fontSize:9)))]),
+                            Row(children: [Flexible(child: Text(h.supplierNama, style: const TextStyle(fontWeight: FontWeight.bold, fontSize:13), overflow: TextOverflow.ellipsis)), if(isMulti) Container(margin: const EdgeInsets.only(left:4), padding: const EdgeInsets.symmetric(horizontal:6,vertical:2), decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)), child: Text("${grouped[key]!.length} nota", style: const TextStyle(color: Colors.white,fontSize:9)))]),
                             Text("${h.noNota} • ${h.tanggalNota.day} ${_monthName(h.tanggalNota.month)} ${h.tanggalNota.year}", style: const TextStyle(fontSize:11,color: Colors.black54)),
                           ])),
                           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -225,7 +218,6 @@ class _HutangScreenState extends ConsumerState<HutangScreen> {
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("Total Tagihan", style: TextStyle(fontWeight: FontWeight.bold)), Text(fmtRp(h.totalTagihan), style: const TextStyle(fontWeight: FontWeight.bold))]),
             ])),
             const SizedBox(height:12),
-            // Kuning & Orange
             Row(children: [
               Expanded(child: ElevatedButton(onPressed: ()=> _showCicilan(ctx, h), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFACC15), foregroundColor: Colors.black, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))), child: const Text("Lihat Cicilan"))),
               const SizedBox(width:8),
@@ -262,8 +254,8 @@ class _HutangScreenState extends ConsumerState<HutangScreen> {
               final bayar = double.tryParse(ctrl.text)??0;
               if(bayar<=0) return;
               final sisa = h.sisaHutang - bayar;
-              await (db.update(db.hutangSupplier)..where((t)=> t.id.equals(h.id))).write(HutangSupplierCompanion(totalDibayar: Value(h.totalDibayar+bayar), sisaHutang: Value(sisa<=0?0:sisa), statusBayar: Value(sisa<=0?'LUNAS':'BELUM_LUNAS')));
-              await db.into(db.pembayaranHutang).insert(PembayaranHutangCompanion.insert(hutangId: h.id, jumlahBayar: bayar, tanggalBayar: Value(tgl)));
+              await (db.update(db.hutangSupplier)..where((t)=> t.id.equals(h.id))).write(HutangSupplierCompanion(totalDibayar: drift.Value(h.totalDibayar+bayar), sisaHutang: drift.Value(sisa<=0?0:sisa), statusBayar: drift.Value(sisa<=0?'LUNAS':'BELUM_LUNAS')));
+              await db.into(db.pembayaranHutang).insert(PembayaranHutangCompanion.insert(hutangId: h.id, jumlahBayar: bayar, tanggalBayar: drift.Value(tgl)));
               if(ctx.mounted) Navigator.pop(ctx);
             }, child: const Text("Simpan Cicilan"))),
           ]),
@@ -280,11 +272,6 @@ class _HutangScreenState extends ConsumerState<HutangScreen> {
       const SizedBox(height:8),
       const Text("Harga Ecer / Agen / Manual ada di Nota Masuk", style: TextStyle(fontSize:11,color: Colors.black54)),
     ])));
-  }
-
-  String _monthName(int m){
-    const names = ["","Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
-    return names[m];
   }
 }
 
